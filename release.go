@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"unicode/utf8"
 )
 
@@ -58,7 +57,7 @@ func writeReleaseHeader(w io.Writer, c *Config) error {
 // A release entry is a function which embeds and returns
 // the file's byte content.
 func writeReleaseAsset(w io.Writer, c *Config, asset *Asset) error {
-	fd, err := os.Open(asset.Path)
+	fd, err := c.Input.Open(asset.Path)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ func writeReleaseAsset(w io.Writer, c *Config, asset *Asset) error {
 	if err != nil {
 		return err
 	}
-	return asset_release_common(w, asset)
+	return asset_release_common(w, c, asset)
 }
 
 // sanitize prepares a valid UTF-8 string as a raw string constant.
@@ -359,8 +358,8 @@ func %s_bytes() ([]byte, error) {
 	return err
 }
 
-func asset_release_common(w io.Writer, asset *Asset) error {
-	fi, err := os.Stat(asset.Path)
+func asset_release_common(w io.Writer, c *Config, asset *Asset) error {
+	fi, err := c.Input.Stat(asset.Path)
 	if err != nil {
 		return err
 	}

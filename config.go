@@ -9,18 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"golang.org/x/tools/godoc/vfs"
 )
-
-// InputConfig defines options on a asset directory to be convert.
-type InputConfig struct {
-	// Path defines a directory containing asset files to be included
-	// in the generated output.
-	Path string
-
-	// Recusive defines whether subdirectories of Path
-	// should be recursively included in the conversion.
-	Recursive bool
-}
 
 // Config defines a set of options for the asset conversion.
 type Config struct {
@@ -33,9 +24,8 @@ type Config struct {
 	// and must follow the build tags syntax specified by the go tool.
 	Tags string
 
-	// Input defines the directory path, containing all asset files as
-	// well as whether to recursively process assets in any sub directories.
-	Input []InputConfig
+	// Input ...
+	Input vfs.FileSystem
 
 	// Output defines the output file for the generated code.
 	// If left empty, this defaults to 'bindata.go' in the current
@@ -154,11 +144,9 @@ func (c *Config) validate() error {
 		return fmt.Errorf("Missing package name")
 	}
 
-	for _, input := range c.Input {
-		_, err := os.Lstat(input.Path)
-		if err != nil {
-			return fmt.Errorf("Failed to stat input path '%s': %v", input.Path, err)
-		}
+	_, err := c.Input.Lstat("/")
+	if err != nil {
+		return fmt.Errorf("Failed to stat input root: %v", err)
 	}
 
 	if len(c.Output) == 0 {

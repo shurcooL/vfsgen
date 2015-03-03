@@ -7,12 +7,16 @@ package bindata
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/shurcooL/go/vfs_util"
+	"golang.org/x/tools/godoc/vfs"
 )
 
 // Translate reads assets from an input directory, converts them
@@ -29,11 +33,9 @@ func Translate(c *Config) error {
 
 	var knownFuncs = make(map[string]int)
 	// Locate all the assets.
-	for _, input := range c.Input {
-		err = findFiles(input.Path, c.Prefix, input.Recursive, &toc, c.Ignore, knownFuncs)
-		if err != nil {
-			return err
-		}
+	err = findFiles2(c.Input, c.Prefix, &toc, c.Ignore, knownFuncs)
+	if err != nil {
+		return err
 	}
 
 	// Create output file.
@@ -92,6 +94,68 @@ type ByName []os.FileInfo
 func (v ByName) Len() int           { return len(v) }
 func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
 func (v ByName) Less(i, j int) bool { return v[i].Name() < v[j].Name() }
+
+func findFiles2(dir vfs.FileSystem, prefix string, toc *[]Asset, ignore []*regexp.Regexp, knownFuncs map[string]int) error {
+	walkFn := func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("can't stat file %s: %v\n", path, err)
+			return nil
+		}
+
+		var asset Asset
+		asset.Path = path
+		asset.Name = path
+
+		ignoring := false
+		for _, re := range ignore {
+			if re.MatchString(asset.Path) {
+				ignoring = true
+				break
+			}
+		}
+		if ignoring {
+			return nil
+		}
+
+		/*if fi.IsDir() {
+			if recursive {
+				return nil
+			} else {
+				return filepath.SkipDir
+			}
+		}*/
+		if fi.IsDir() {
+			return nil
+		}
+
+		if strings.HasPrefix(asset.Name, prefix) {
+			asset.Name = asset.Name[len(prefix):]
+		}
+
+		// If we have a leading slash, get rid of it.
+		if len(asset.Name) > 0 && asset.Name[0] == '/' {
+			asset.Name = asset.Name[1:]
+		}
+
+		// This shouldn't happen.
+		if len(asset.Name) == 0 {
+			return fmt.Errorf("Invalid file: %v", asset.Path)
+		}
+
+		asset.Func = safeFunctionName(asset.Name, knownFuncs)
+		asset.Path, _ = filepath.Abs(asset.Path)
+		*toc = append(*toc, asset)
+
+		return nil
+	}
+
+	err := vfs_util.Walk(dir, "/", walkFn)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names

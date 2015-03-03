@@ -12,7 +12,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/bradfitz/iter"
 	"github.com/jteeuwen/go-bindata"
+	"github.com/shurcooL/go/vfs_util"
+	"golang.org/x/tools/godoc/vfs"
 )
 
 func main() {
@@ -74,10 +77,11 @@ func parseArgs() *bindata.Config {
 	}
 
 	// Create input configurations.
-	c.Input = make([]bindata.InputConfig, flag.NArg())
-	for i := range c.Input {
-		c.Input[i] = parseInput(flag.Arg(i))
+	ns := vfs.NameSpace{}
+	for i := range iter.N(flag.NArg()) {
+		ns.Bind("/", parseInput(flag.Arg(i)), "/", vfs.BindAfter)
 	}
+	c.Input = ns
 
 	return c
 }
@@ -88,17 +92,26 @@ func parseArgs() *bindata.Config {
 //  ex:
 //      /path/to/foo/...    -> (/path/to/foo, true)
 //      /path/to/bar        -> (/path/to/bar, false)
-func parseInput(path string) bindata.InputConfig {
-	if strings.HasSuffix(path, "/...") {
+func parseInput(path string) vfs.FileSystem {
+	path = strings.TrimSuffix(path, "/...") // TODO.
+	path = filepath.Clean(path)
+
+	prefix := filepath.ToSlash(path)
+	if !strings.HasPrefix(prefix, "/") {
+		prefix = "/" + prefix
+	}
+
+	return vfs_util.NewPrefixFS(vfs.OS(path), prefix)
+
+	/*if strings.HasSuffix(path, "/...") {
 		return bindata.InputConfig{
-			Path:      filepath.Clean(path[:len(path)-4]),
+			Path:      vfs.OS(filepath.Clean(path[:len(path)-4])),
 			Recursive: true,
 		}
 	} else {
-		return bindata.InputConfig{
-			Path:      filepath.Clean(path),
+		/*return bindata.InputConfig{
+			Path:      vfs.OS(filepath.Clean(path)),
 			Recursive: false,
 		}
-	}
-
+	}*/
 }

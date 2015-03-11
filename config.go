@@ -15,6 +15,9 @@ import (
 
 // Config defines a set of options for the asset conversion.
 type Config struct {
+	// Input is the filesystem that contains input assets to be converted.
+	Input vfs.FileSystem
+
 	// Name of the package to use. Defaults to 'main'.
 	Package string
 
@@ -23,9 +26,6 @@ type Config struct {
 	// `// +build` line in the beginning of the output file
 	// and must follow the build tags syntax specified by the go tool.
 	Tags string
-
-	// Input ...
-	Input vfs.FileSystem
 
 	// Output defines the output file for the generated code.
 	// If left empty, this defaults to 'bindata.go' in the current

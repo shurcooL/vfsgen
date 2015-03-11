@@ -1,3 +1,5 @@
+// generated via `go generate`; do not edit
+
 package bindata_test
 
 import (

@@ -50,6 +50,12 @@ func Translate(c *Config) error {
 	bfd := bufio.NewWriter(fd)
 	defer bfd.Flush()
 
+	// Write generated disclaimer.
+	_, err = fmt.Fprintf(bfd, "// generated via `go generate`; do not edit\n\n")
+	if err != nil {
+		return err
+	}
+
 	// Write build tags, if applicable.
 	if len(c.Tags) > 0 {
 		_, err = fmt.Fprintf(bfd, "// +build %s\n\n", c.Tags)

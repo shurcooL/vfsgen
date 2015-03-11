@@ -9,8 +9,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"unicode/utf8"
 )
 
 // writeRelease writes the release code file.
@@ -33,20 +31,7 @@ func writeRelease(w io.Writer, c *Config, toc []Asset) error {
 // writeReleaseHeader writes output file headers.
 // This targets release builds.
 func writeReleaseHeader(w io.Writer, c *Config) error {
-	var err error
-	if c.NoCompress {
-		if c.NoMemCopy {
-			err = header_uncompressed_nomemcopy(w)
-		} else {
-			err = header_uncompressed_memcopy(w)
-		}
-	} else {
-		if c.NoMemCopy {
-			err = header_compressed_nomemcopy(w)
-		} else {
-			err = header_compressed_memcopy(w)
-		}
-	}
+	err := header_compressed_nomemcopy(w)
 	if err != nil {
 		return err
 	}
@@ -64,23 +49,11 @@ func writeReleaseAsset(w io.Writer, c *Config, asset *Asset) error {
 
 	defer fd.Close()
 
-	if c.NoCompress {
-		if c.NoMemCopy {
-			err = uncompressed_nomemcopy(w, asset, fd)
-		} else {
-			err = uncompressed_memcopy(w, asset, fd)
-		}
-	} else {
-		if c.NoMemCopy {
-			err = compressed_nomemcopy(w, asset, fd)
-		} else {
-			err = compressed_memcopy(w, asset, fd)
-		}
-	}
+	compressedSize, err := compressed_nomemcopy(w, asset, fd)
 	if err != nil {
 		return err
 	}
-	return asset_release_common(w, c, asset)
+	return asset_release_common(w, c, asset, compressedSize)
 }
 
 // sanitize prepares a valid UTF-8 string as a raw string constant.
@@ -112,6 +85,12 @@ func header_compressed_nomemcopy(w io.Writer) error {
 	"path/filepath"
 )
 
+// For assetfs.
+import (
+	"errors"
+	"net/http"
+)
+
 func bindata_read(data, name string) ([]byte, error) {
 	var empty [0]byte
 	sx := (*reflect.StringHeader)(unsafe.Pointer(&data))
@@ -137,59 +116,7 @@ func bindata_read(data, name string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-`)
-	return err
-}
-
-func header_compressed_memcopy(w io.Writer) error {
-	_, err := fmt.Fprintf(w, `import (
-	"bytes"
-	"compress/gzip"
-	"fmt"
-	"io"
-	"strings"
-	"os"
-	"time"
-	"io/ioutil"
-	"path"
-	"path/filepath"
-)
-
-func bindata_read(data []byte, name string) ([]byte, error) {
-	gz, err := gzip.NewReader(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, fmt.Errorf("Read %%q: %%v", name, err)
-	}
-
-	var buf bytes.Buffer
-	_, err = io.Copy(&buf, gz)
-	gz.Close()
-
-	if err != nil {
-		return nil, fmt.Errorf("Read %%q: %%v", name, err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-`)
-	return err
-}
-
-func header_uncompressed_nomemcopy(w io.Writer) error {
-	_, err := fmt.Fprintf(w, `import (
-	"fmt"
-	"reflect"
-	"strings"
-	"unsafe"
-	"os"
-	"time"
-	"io/ioutil"
-	"path"
-	"path/filepath"
-)
-
-func bindata_read(data, name string) ([]byte, error) {
+func bindata_read_compressed(data, name string) ([]byte, error) {
 	var empty [0]byte
 	sx := (*reflect.StringHeader)(unsafe.Pointer(&data))
 	b := empty[:]
@@ -204,38 +131,23 @@ func bindata_read(data, name string) ([]byte, error) {
 	return err
 }
 
-func header_uncompressed_memcopy(w io.Writer) error {
-	_, err := fmt.Fprintf(w, `import (
-	"fmt"
-	"strings"
-	"os"
-	"time"
-	"io/ioutil"
-	"path"
-	"path/filepath"
-)
-`)
-	return err
-}
-
 func header_release_common(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `type asset struct {
-	bytes []byte
-	info  os.FileInfo
+	bytes           []byte
+	compressedBytes []byte
+	info            bindata_file_info
 }
 
 type bindata_file_info struct {
-	name string
-	size int64
-	mode os.FileMode
-	modTime time.Time
+	name             string
+	uncompressedSize int64
+	compressedSize   int64
+	mode             os.FileMode
+	modTime          time.Time
 }
 
 func (fi bindata_file_info) Name() string {
 	return fi.name
-}
-func (fi bindata_file_info) Size() int64 {
-	return fi.size
 }
 func (fi bindata_file_info) Mode() os.FileMode {
 	return fi.mode
@@ -250,22 +162,35 @@ func (fi bindata_file_info) Sys() interface{} {
 	return nil
 }
 
+type uncompressedFileInfo struct{bindata_file_info}
+
+func (fi uncompressedFileInfo) Size() int64 {
+	return fi.uncompressedSize
+}
+
+type compressedFileInfo struct{bindata_file_info}
+
+func (fi compressedFileInfo) Size() int64 {
+	return fi.compressedSize
+}
+
 `)
 	return err
 }
 
-func compressed_nomemcopy(w io.Writer, asset *Asset, r io.Reader) error {
+func compressed_nomemcopy(w io.Writer, asset *Asset, r io.Reader) (int64, error) {
 	_, err := fmt.Fprintf(w, `var _%s = "`, asset.Func)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	gz := gzip.NewWriter(&StringWriter{Writer: w})
+	sw := &StringWriter{Writer: w}
+	gz := gzip.NewWriter(sw)
 	_, err = io.Copy(gz, r)
 	gz.Close()
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	_, err = fmt.Fprintf(w, `"
@@ -277,88 +202,18 @@ func %s_bytes() ([]byte, error) {
 	)
 }
 
-`, asset.Func, asset.Func, asset.Name)
-	return err
-}
-
-func compressed_memcopy(w io.Writer, asset *Asset, r io.Reader) error {
-	_, err := fmt.Fprintf(w, `var _%s = []byte("`, asset.Func)
-	if err != nil {
-		return err
-	}
-
-	gz := gzip.NewWriter(&StringWriter{Writer: w})
-	_, err = io.Copy(gz, r)
-	gz.Close()
-
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintf(w, `")
-
-func %s_bytes() ([]byte, error) {
-	return bindata_read(
+func %s_bytes_compressed() ([]byte, error) {
+	return bindata_read_compressed(
 		_%s,
 		%q,
 	)
 }
 
-`, asset.Func, asset.Func, asset.Name)
-	return err
+`, asset.Func, asset.Func, asset.Name, asset.Func, asset.Func, asset.Name)
+	return sw.c, err
 }
 
-func uncompressed_nomemcopy(w io.Writer, asset *Asset, r io.Reader) error {
-	_, err := fmt.Fprintf(w, `var _%s = "`, asset.Func)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(&StringWriter{Writer: w}, r)
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintf(w, `"
-
-func %s_bytes() ([]byte, error) {
-	return bindata_read(
-		_%s,
-		%q,
-	)
-}
-
-`, asset.Func, asset.Func, asset.Name)
-	return err
-}
-
-func uncompressed_memcopy(w io.Writer, asset *Asset, r io.Reader) error {
-	_, err := fmt.Fprintf(w, `var _%s = []byte(`, asset.Func)
-	if err != nil {
-		return err
-	}
-
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	if utf8.Valid(b) {
-		fmt.Fprintf(w, "`%s`", sanitize(b))
-	} else {
-		fmt.Fprintf(w, "%q", b)
-	}
-
-	_, err = fmt.Fprintf(w, `)
-
-func %s_bytes() ([]byte, error) {
-	return _%s, nil
-}
-
-`, asset.Func, asset.Func)
-	return err
-}
-
-func asset_release_common(w io.Writer, c *Config, asset *Asset) error {
+func asset_release_common(w io.Writer, c *Config, asset *Asset, compressedSize int64) error {
 	fi, err := c.Input.Stat(asset.Path)
 	if err != nil {
 		return err
@@ -370,11 +225,16 @@ func asset_release_common(w io.Writer, c *Config, asset *Asset) error {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: %q, size: %d, mode: os.FileMode(%d), modTime: time.Unix(%d, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	compressedBytes, err := %s_bytes_compressed()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: %q, uncompressedSize: %d, compressedSize: %d, mode: os.FileMode(%d), modTime: time.Unix(%d, 0)}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info:  info}
 	return a, nil
 }
 
-`, asset.Func, asset.Func, asset.Name, fi.Size(), uint32(fi.Mode()), fi.ModTime().Unix())
+`, asset.Func, asset.Func, asset.Func, asset.Name, fi.Size(), compressedSize, uint32(fi.Mode()), fi.ModTime().Unix())
 	return err
 }

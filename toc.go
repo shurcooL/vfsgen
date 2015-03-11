@@ -170,6 +170,18 @@ func Asset(name string) ([]byte, error) {
 	return nil, fmt.Errorf("Asset %%s not found", name)
 }
 
+func AssetCompressed(name string) ([]byte, error) {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	if f, ok := _bindata[cannonicalName]; ok {
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("Asset %%s can't read by error: %%v", name, err)
+		}
+		return a.compressedBytes, nil
+	}
+	return nil, fmt.Errorf("Asset %%s not found", name)
+}
+
 // AssetInfo loads and returns the asset info for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -180,7 +192,7 @@ func AssetInfo(name string) (os.FileInfo, error) {
 		if err != nil {
 			return nil, fmt.Errorf("AssetInfo %%s can't read by error: %%v", name, err)
 		}
-		return a.info, nil
+		return uncompressedFileInfo{a.info}, nil
 	}
 	return nil, fmt.Errorf("AssetInfo %%s not found", name)
 }

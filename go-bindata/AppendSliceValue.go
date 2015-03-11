@@ -13,10 +13,6 @@ func (s *AppendSliceValue) String() string {
 }
 
 func (s *AppendSliceValue) Set(value string) error {
-	if *s == nil {
-		*s = make([]string, 0, 1)
-	}
-
 	*s = append(*s, value)
 	return nil
 }

@@ -12,7 +12,7 @@ const lowerHex = "0123456789abcdef"
 
 type StringWriter struct {
 	io.Writer
-	c int
+	c int64
 }
 
 func (w *StringWriter) Write(p []byte) (n int, err error) {

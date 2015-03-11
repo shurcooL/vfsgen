@@ -65,13 +65,7 @@ func Translate(c *Config) error {
 	}
 
 	// Write assets.
-	if c.Debug || c.Dev {
-		err = writeDebug(bfd, c, toc)
-	} else {
-		err = writeRelease(bfd, c, toc)
-	}
-
-	if err != nil {
+	if err = writeRelease(bfd, c, toc); err != nil {
 		return err
 	}
 
@@ -84,8 +78,12 @@ func Translate(c *Config) error {
 		return err
 	}
 
-	// Write restore procedure
-	return writeRestore(bfd)
+	// Write virtual file system.
+	if err := writeVFS(bfd); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Implement sort.Interface for []os.FileInfo based on Name()

@@ -7,14 +7,14 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
-	"unsafe"
-	"os"
 	"time"
-	"io/ioutil"
-	"path"
-	"path/filepath"
+	"unsafe"
+
+	"github.com/shurcooL/go/vfsfs"
 )
 
 // For assetfs.
@@ -65,6 +65,8 @@ type asset struct {
 	info            bindata_file_info
 }
 
+func (_ *asset) Close() error { return nil }
+
 type bindata_file_info struct {
 	name             string
 	uncompressedSize int64
@@ -89,13 +91,13 @@ func (fi bindata_file_info) Sys() interface{} {
 	return nil
 }
 
-type uncompressedFileInfo struct{bindata_file_info}
+type uncompressedFileInfo struct{ bindata_file_info }
 
 func (fi uncompressedFileInfo) Size() int64 {
 	return fi.uncompressedSize
 }
 
-type compressedFileInfo struct{bindata_file_info}
+type compressedFileInfo struct{ bindata_file_info }
 
 func (fi compressedFileInfo) Size() int64 {
 	return fi.compressedSize
@@ -129,7 +131,7 @@ func not_worth_compressing_file_txt() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "not-worth-compressing-file.txt", uncompressedSize: 29, compressedSize: 52, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info:  info}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
 	return a, nil
 }
 
@@ -161,7 +163,7 @@ func sample_file_txt() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "sample-file.txt", uncompressedSize: 189, compressedSize: 58, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info:  info}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
 	return a, nil
 }
 
@@ -176,6 +178,18 @@ func Asset(name string) ([]byte, error) {
 			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
 		}
 		return a.bytes, nil
+	}
+	return nil, fmt.Errorf("Asset %s not found", name)
+}
+
+func Asset2(name string) (*asset, error) {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	if f, ok := _bindata[cannonicalName]; ok {
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
+		}
+		return a, nil
 	}
 	return nil, fmt.Errorf("Asset %s not found", name)
 }
@@ -219,7 +233,7 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"not-worth-compressing-file.txt": not_worth_compressing_file_txt,
-	"sample-file.txt": sample_file_txt,
+	"sample-file.txt":                sample_file_txt,
 }
 
 // AssetDir returns the file names below a certain
@@ -241,7 +255,7 @@ func AssetDir(name string) ([]string, error) {
 		cannonicalName := strings.Replace(name, "\\", "/", -1)
 		pathList := strings.Split(cannonicalName, "/")
 		for _, p := range pathList {
-			node = node.Children[p]
+			node = node.children[p]
 			if node == nil {
 				return nil, fmt.Errorf("Asset %s not found", name)
 			}
@@ -250,22 +264,21 @@ func AssetDir(name string) ([]string, error) {
 	if node.Func != nil {
 		return nil, fmt.Errorf("Asset %s not found", name)
 	}
-	rv := make([]string, 0, len(node.Children))
-	for name := range node.Children {
+	rv := make([]string, 0, len(node.children))
+	for name := range node.children {
 		rv = append(rv, name)
 	}
 	return rv, nil
 }
 
 type _bintree_t struct {
-	Func func() (*asset, error)
-	Children map[string]*_bintree_t
+	Func     func() (*asset, error)
+	children map[string]*_bintree_t
 }
+
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{
-	}},
-	"sample-file.txt": &_bintree_t{sample_file_txt, map[string]*_bintree_t{
-	}},
+	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{}},
+	"sample-file.txt":                &_bintree_t{sample_file_txt, map[string]*_bintree_t{}},
 }}
 
 var (
@@ -314,87 +327,113 @@ func (f *FakeFile) Sys() interface{} {
 // AssetFile implements http.File interface for a no-directory file with content
 type AssetFile struct {
 	*bytes.Reader
-	io.Closer
-	FakeFile
+	*asset
 }
 
-func NewAssetFile(name string, content []byte) *AssetFile {
+/*func NewAssetFile(name string, content []byte) *AssetFile {
 	return &AssetFile{
 		bytes.NewReader(content),
-		ioutil.NopCloser(nil),
-		FakeFile{name, false, int64(len(content))}}
-}
+		FakeFile{name, false, int64(len(content))},
+	}
+}*/
 
 func (f *AssetFile) Readdir(count int) ([]os.FileInfo, error) {
 	return nil, errors.New("not a directory")
 }
 
 func (f *AssetFile) Stat() (os.FileInfo, error) {
+	return uncompressedFileInfo{f.asset.info}, nil
+}
+
+// TODO: This becomes invisible once http.FileSystem is abstracted behind vfs.FileSystem, what do?
+func (f *AssetFile) CompressedBytes() ([]byte, error) {
+	return f.asset.compressedBytes, nil
+}
+
+func (_ *AssetFile) Close() error { return nil }
+
+type AssetFileOld struct {
+	*bytes.Reader
+	FakeFile
+}
+
+func (f *AssetFileOld) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, errors.New("not a directory")
+}
+
+func (f *AssetFileOld) Stat() (os.FileInfo, error) {
 	return f, nil
+}
+
+func (_ *AssetFileOld) Close() error {
+	return nil
 }
 
 // AssetDirectory implements http.File interface for a directory
 type AssetDirectory struct {
-	AssetFile
-	ChildrenRead int
-	Children     []os.FileInfo
+	name          string
+	io.ReadSeeker // TODO: nil so will panic.
+	childrenRead  int
+	children      []os.FileInfo
 }
 
 func NewAssetDirectory(name string, children []string, fs *AssetFS) *AssetDirectory {
 	fileinfos := make([]os.FileInfo, 0, len(children))
 	for _, child := range children {
-		_, err := fs.AssetDir(filepath.Join(name, child))
+		_, err := AssetDir(filepath.Join(name, child))
 		fileinfos = append(fileinfos, &FakeFile{child, err == nil, 0})
 	}
 	return &AssetDirectory{
-		AssetFile{
+		/*AssetFileOld: AssetFileOld{
 			bytes.NewReader(nil),
-			ioutil.NopCloser(nil),
-			FakeFile{name, true, 0},
-		},
-		0,
-		fileinfos}
+			FakeFile{Path: name, Dir: true, Len:0},
+		},*/
+		name:         name,
+		childrenRead: 0,
+		children:     fileinfos,
+	}
 }
 
 func (f *AssetDirectory) Readdir(count int) ([]os.FileInfo, error) {
 	if count <= 0 {
-		return f.Children, nil
+		return f.children, nil
 	}
-	if f.ChildrenRead+count > len(f.Children) {
-		count = len(f.Children) - f.ChildrenRead
+	if f.childrenRead+count > len(f.children) {
+		count = len(f.children) - f.childrenRead
 	}
-	rv := f.Children[f.ChildrenRead : f.ChildrenRead+count]
-	f.ChildrenRead += count
+	rv := f.children[f.childrenRead : f.childrenRead+count]
+	f.childrenRead += count
 	return rv, nil
 }
 
 func (f *AssetDirectory) Stat() (os.FileInfo, error) {
-	return f, nil
+	return &FakeFile{Path: f.name, Dir: true, Len: 0}, nil
 }
+
+func (_ *AssetDirectory) Close() error { return nil }
+
+// TODO: To be final output.
+var AssetsFs = vfsfs.New(&AssetFS{})
 
 // AssetFS implements http.FileSystem, allowing
 // embedded files to be served from net/http package.
-type AssetFS struct {
-	// Asset should return content of file in path if exists
-	Asset func(path string) ([]byte, error)
-	// AssetDir should return list of files in the path
-	AssetDir func(path string) ([]string, error)
-	// Prefix would be prepended to http requests
-	Prefix string
-}
+type AssetFS struct{}
 
 func (fs *AssetFS) Open(name string) (http.File, error) {
-	name = path.Join(fs.Prefix, name)
 	if len(name) > 0 && name[0] == '/' {
 		name = name[1:]
 	}
-	if children, err := fs.AssetDir(name); err == nil {
+	if children, err := AssetDir(name); err == nil {
 		return NewAssetDirectory(name, children, fs), nil
 	}
-	b, err := fs.Asset(name)
+	a, err := Asset2(name)
 	if err != nil {
 		return nil, err
 	}
-	return NewAssetFile(name, b), nil
+	//return a, nil
+	return &AssetFile{
+		Reader: bytes.NewReader(a.bytes),
+		asset:  a,
+		//FakeFile: FakeFile{name, false, int64(len(a.bytes))},
+	}, nil
 }
-

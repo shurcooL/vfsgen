@@ -162,13 +162,13 @@ func (fi bindata_file_info) Sys() interface{} {
 	return nil
 }
 
-type uncompressedFileInfo struct{bindata_file_info}
+type uncompressedFileInfo struct{ bindata_file_info }
 
 func (fi uncompressedFileInfo) Size() int64 {
 	return fi.uncompressedSize
 }
 
-type compressedFileInfo struct{bindata_file_info}
+type compressedFileInfo struct{ bindata_file_info }
 
 func (fi compressedFileInfo) Size() int64 {
 	return fi.compressedSize

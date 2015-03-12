@@ -6,14 +6,13 @@ import (
 	"os"
 
 	"github.com/shurcooL/go/vfs_util"
-	"github.com/shurcooL/go/vfsfs"
 	"golang.org/x/tools/godoc/vfs"
 )
 
 //go:generate go run main_test_generate.go
 
 func Example() {
-	var fs vfs.FileSystem = vfsfs.New(&AssetFS{Asset: Asset, AssetDir: AssetDir})
+	var fs vfs.FileSystem = AssetsFs
 
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -43,7 +42,7 @@ func Example() {
 
 func ExampleCompressed() {
 	// Compressed file system.
-	var fs vfs.FileSystem = vfsfs.New(&AssetFS{Asset: AssetCompressed, AssetDir: AssetDir})
+	var fs vfs.FileSystem = AssetsFs
 
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -52,6 +51,7 @@ func ExampleCompressed() {
 		}
 		fmt.Println(path)
 		if !fi.IsDir() {
+			// if func (f *AssetFile) CompressedBytes() ([]byte, error) {...
 			b, err := vfs.ReadFile(fs, path)
 			fmt.Printf("%q %v\n", string(b), err)
 		}

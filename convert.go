@@ -43,7 +43,6 @@ func Translate(c *Config) error {
 	if err != nil {
 		return err
 	}
-
 	defer fd.Close()
 
 	// Create a buffered writer for better performance.
@@ -57,7 +56,7 @@ func Translate(c *Config) error {
 	}
 
 	// Write build tags, if applicable.
-	if len(c.Tags) > 0 {
+	if c.Tags != "" {
 		_, err = fmt.Fprintf(bfd, "// +build %s\n\n", c.Tags)
 		if err != nil {
 			return err

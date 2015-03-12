@@ -101,7 +101,39 @@ func (fi compressedFileInfo) Size() int64 {
 	return fi.compressedSize
 }
 
-var _sample_file_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"
+var _not_worth_compressing_file_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"
+
+func not_worth_compressing_file_txt_bytes() ([]byte, error) {
+	return bindata_read(
+		_not_worth_compressing_file_txt,
+		"not-worth-compressing-file.txt",
+	)
+}
+
+func not_worth_compressing_file_txt_bytes_compressed() ([]byte, error) {
+	return bindata_read_compressed(
+		_not_worth_compressing_file_txt,
+		"not-worth-compressing-file.txt",
+	)
+}
+
+func not_worth_compressing_file_txt() (*asset, error) {
+	bytes, err := not_worth_compressing_file_txt_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	compressedBytes, err := not_worth_compressing_file_txt_bytes_compressed()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "not-worth-compressing-file.txt", uncompressedSize: 29, compressedSize: 52, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info:  info}
+	return a, nil
+}
+
+var _sample_file_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x0f\x10\x00\x00\xff\xff\x76\x5a\x3e\xaa\xbd\x00\x00\x00"
 
 func sample_file_txt_bytes() ([]byte, error) {
 	return bindata_read(
@@ -128,7 +160,7 @@ func sample_file_txt() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "sample-file.txt", uncompressedSize: 29, compressedSize: 52, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
+	info := bindata_file_info{name: "sample-file.txt", uncompressedSize: 189, compressedSize: 58, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
 	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info:  info}
 	return a, nil
 }
@@ -186,6 +218,7 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
+	"not-worth-compressing-file.txt": not_worth_compressing_file_txt,
 	"sample-file.txt": sample_file_txt,
 }
 
@@ -229,6 +262,8 @@ type _bintree_t struct {
 	Children map[string]*_bintree_t
 }
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
+	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{
+	}},
 	"sample-file.txt": &_bintree_t{sample_file_txt, map[string]*_bintree_t{
 	}},
 }}

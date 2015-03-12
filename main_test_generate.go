@@ -10,7 +10,8 @@ import (
 )
 
 var inputFs = mapfs.New(map[string]string{
-	"sample-file.txt": "Its normal contents are here.",
+	"sample-file.txt":                "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah.",
+	"not-worth-compressing-file.txt": "Its normal contents are here.",
 })
 
 func main() {

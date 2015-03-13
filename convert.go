@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
@@ -136,7 +135,6 @@ func findFiles(fs http.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownF
 		}
 
 		asset.Func = safeFunctionName(asset.Name, knownFuncs)
-		asset.Path, _ = filepath.Abs(asset.Path)
 		*toc = append(*toc, asset)
 
 		return nil

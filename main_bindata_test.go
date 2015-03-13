@@ -7,14 +7,13 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
 	"unsafe"
-
-	"github.com/shurcooL/go/vfsfs"
 )
 
 // For assetfs.
@@ -345,9 +344,9 @@ func (f *AssetFile) Stat() (os.FileInfo, error) {
 	return uncompressedFileInfo{f.asset.info}, nil
 }
 
-// TODO: This becomes invisible once http.FileSystem is abstracted behind vfs.FileSystem, what do?
-func (f *AssetFile) CompressedBytes() ([]byte, error) {
-	return f.asset.compressedBytes, nil
+func (f *AssetFile) GzipBytes() []byte {
+	log.Println("using GzipBytes!")
+	return f.asset.compressedBytes
 }
 
 func (_ *AssetFile) Close() error { return nil }
@@ -413,7 +412,8 @@ func (f *AssetDirectory) Stat() (os.FileInfo, error) {
 func (_ *AssetDirectory) Close() error { return nil }
 
 // TODO: To be final output.
-var AssetsFs = vfsfs.New(&AssetFS{})
+//var AssetsFs = godocfs.New(&AssetFS{})
+var AssetsFs http.FileSystem = &AssetFS{}
 
 // AssetFS implements http.FileSystem, allowing
 // embedded files to be served from net/http package.

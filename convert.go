@@ -15,7 +15,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/shurcooL/go/vfs_util"
+	"github.com/shurcooL/go/vfs/godocfs/vfsutil"
 	"golang.org/x/tools/godoc/vfs"
 )
 
@@ -152,7 +152,7 @@ func findFiles2(dir vfs.FileSystem, prefix string, toc *[]Asset, ignore []*regex
 		return nil
 	}
 
-	err := vfs_util.Walk(dir, "/", walkFn)
+	err := vfsutil.Walk(dir, "/", walkFn)
 	if err != nil {
 		return err
 	}

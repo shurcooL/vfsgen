@@ -2,6 +2,7 @@
 package gzip_file_server
 
 import (
+	"bytes"
 	"fmt"
 	"html"
 	"net/http"
@@ -16,21 +17,17 @@ import (
 )
 
 type gzipFileServer struct {
-	// TODO: Use vfs.FileSystem.
 	root http.FileSystem
 }
 
 // New returns a raw file server, that serves the given virtual file system without special handling of index.html.
 func New(root vfs.FileSystem) http.Handler {
-	// TODO: Use vfs.FileSystem.
-	return &gzipFileServer{httpfs.New(root)}
+	return &gzipFileServer{root: httpfs.New(root)}
 }
 
 // NewUsingHttpFs returns a raw file server.
-//
-// TODO: Remove when this is no longer neccessary.
 func NewUsingHttpFs(root http.FileSystem) http.Handler {
-	return &gzipFileServer{root}
+	return &gzipFileServer{root: root}
 }
 
 func (f *gzipFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -108,8 +105,17 @@ func serveFile(w http.ResponseWriter, r *http.Request, fs http.FileSystem, name 
 	if _, plain := r.URL.Query()["plain"]; plain {
 		w.Header().Set("Content-Type", "text/plain")
 	}
-	w.Header().Set("Content-Encoding", "gzip") // TODO: Check "Accept-Encoding"?
-	http.ServeContent(w, r, d.Name(), d.ModTime(), f)
+	switch gzipFile, ok := f.(gzipByter); {
+	case ok && isGzipEncodingAccepted(r):
+		w.Header().Set("Content-Encoding", "gzip")
+		http.ServeContent(w, r, d.Name(), d.ModTime(), bytes.NewReader(gzipFile.GzipBytes()))
+	default:
+		http.ServeContent(w, r, d.Name(), d.ModTime(), f)
+	}
+}
+
+type gzipByter interface {
+	GzipBytes() []byte
 }
 
 // localRedirect gives a Moved Permanently response.
@@ -128,3 +134,13 @@ type byName []os.FileInfo
 func (f byName) Len() int           { return len(f) }
 func (f byName) Less(i, j int) bool { return f[i].Name() < f[j].Name() }
 func (f byName) Swap(i, j int)      { f[i], f[j] = f[j], f[i] }
+
+// isGzipEncodingAccepted returns true if the request includes "gzip" under Accept-Encoding header.
+func isGzipEncodingAccepted(req *http.Request) bool {
+	for _, v := range strings.Split(req.Header.Get("Accept-Encoding"), ",") {
+		if strings.TrimSpace(v) == "gzip" {
+			return true
+		}
+	}
+	return false
+}

@@ -5,21 +5,20 @@
 package bindata
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
 )
 
-// writeRelease writes the release code file.
-func writeRelease(w io.Writer, c *Config, toc []Asset) error {
-	err := writeReleaseHeader(w, c)
+// writeAssets writes the code file.
+func writeAssets(w io.Writer, c *Config, toc []Asset) error {
+	err := writeHeader(w, c)
 	if err != nil {
 		return err
 	}
 
 	for i := range toc {
-		err = writeReleaseAsset(w, c, &toc[i])
+		err = writeAsset(w, c, &toc[i])
 		if err != nil {
 			return err
 		}
@@ -28,20 +27,19 @@ func writeRelease(w io.Writer, c *Config, toc []Asset) error {
 	return nil
 }
 
-// writeReleaseHeader writes output file headers.
-// This targets release builds.
-func writeReleaseHeader(w io.Writer, c *Config) error {
+// writeHeader writes output file headers.
+func writeHeader(w io.Writer, c *Config) error {
 	err := header_compressed_nomemcopy(w)
 	if err != nil {
 		return err
 	}
-	return header_release_common(w)
+	return header_common(w)
 }
 
-// writeReleaseAsset write a release entry for the given asset.
-// A release entry is a function which embeds and returns
+// writeAsset write a entry for the given asset.
+// An entry is a function which embeds and returns
 // the file's byte content.
-func writeReleaseAsset(w io.Writer, c *Config, asset *Asset) error {
+func writeAsset(w io.Writer, c *Config, asset *Asset) error {
 	fd, err := c.Input.Open(asset.Path)
 	if err != nil {
 		return err
@@ -53,20 +51,7 @@ func writeReleaseAsset(w io.Writer, c *Config, asset *Asset) error {
 	if err != nil {
 		return err
 	}
-	return asset_release_common(w, c, asset, compressedSize)
-}
-
-// sanitize prepares a valid UTF-8 string as a raw string constant.
-// Based on https://code.google.com/p/go/source/browse/godoc/static/makestatic.go?repo=tools
-func sanitize(b []byte) []byte {
-	// Replace ` with `+"`"+`
-	b = bytes.Replace(b, []byte("`"), []byte("`+\"`\"+`"), -1)
-
-	// Replace BOM with `+"\xEF\xBB\xBF"+`
-	// (A BOM is valid UTF-8 but not permitted in Go source files.
-	// I wouldn't bother handling this, but for some insane reason
-	// jquery.js has a BOM somewhere in the middle.)
-	return bytes.Replace(b, []byte("\xEF\xBB\xBF"), []byte("`+\"\\xEF\\xBB\\xBF\"+`"), -1)
+	return asset_common(w, c, asset, compressedSize)
 }
 
 func header_compressed_nomemcopy(w io.Writer) error {
@@ -130,7 +115,7 @@ func bindata_read_compressed(data, name string) ([]byte, error) {
 	return err
 }
 
-func header_release_common(w io.Writer) error {
+func header_common(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `type asset struct {
 	bytes           []byte
 	compressedBytes []byte
@@ -214,7 +199,7 @@ func %s_bytes_compressed() ([]byte, error) {
 	return sw.c, err
 }
 
-func asset_release_common(w io.Writer, c *Config, asset *Asset, compressedSize int64) error {
+func asset_common(w io.Writer, c *Config, asset *Asset, compressedSize int64) error {
 	fi, err := c.Input.Stat(asset.Path)
 	if err != nil {
 		return err

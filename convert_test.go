@@ -3,6 +3,8 @@ package bindata
 import (
 	"regexp"
 	"testing"
+
+	"golang.org/x/tools/godoc/vfs"
 )
 
 func TestSafeFunctionName(t *testing.T) {
@@ -17,7 +19,7 @@ func TestSafeFunctionName(t *testing.T) {
 func TestFindFiles(t *testing.T) {
 	var toc []Asset
 	var knownFuncs = make(map[string]int)
-	err := findFiles("testdata/dupname", "testdata/dupname", true, &toc, []*regexp.Regexp{}, knownFuncs)
+	err := findFiles(vfs.OS("./testdata/dupname/"), &toc, []*regexp.Regexp{}, knownFuncs)
 	if err != nil {
 		t.Errorf("expected to be no error: %+v", err)
 	}

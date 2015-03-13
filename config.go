@@ -13,6 +13,15 @@ import (
 	"golang.org/x/tools/godoc/vfs"
 )
 
+// NewConfig returns a default configuration struct.
+func NewConfig() *Config {
+	return &Config{
+		Package: "main",
+		Output:  "./bindata.go",
+		Ignore:  make([]*regexp.Regexp, 0),
+	}
+}
+
 // Config defines a set of options for the asset conversion.
 type Config struct {
 	// Input is the filesystem that contains input assets to be converted.
@@ -32,34 +41,12 @@ type Config struct {
 	// working directory.
 	Output string
 
-	// Prefix defines a path prefix which should be stripped from all
-	// file names when generating the keys in the table of contents.
-	// For example, running without the `-prefix` flag, we get:
-	//
-	// 	$ go-bindata /path/to/templates
-	// 	go_bindata["/path/to/templates/foo.html"] = _path_to_templates_foo_html
-	//
-	// Running with the `-prefix` flag, we get:
-	//
-	// 	$ go-bindata -prefix "/path/to/" /path/to/templates/foo.html
-	// 	go_bindata["templates/foo.html"] = templates_foo_html
-	Prefix string
-
 	// Ignores any filenames matching the regex pattern specified, e.g.
 	// path/to/file.ext will ignore only that file, or \\.gitignore
 	// will match any .gitignore file.
 	//
 	// This parameter can be provided multiple times.
 	Ignore []*regexp.Regexp
-}
-
-// NewConfig returns a default configuration struct.
-func NewConfig() *Config {
-	return &Config{
-		Package: "main",
-		Output:  "./bindata.go",
-		Ignore:  make([]*regexp.Regexp, 0),
-	}
 }
 
 // validate ensures the config has sane values.
@@ -99,9 +86,7 @@ func (c *Config) validate() error {
 				return fmt.Errorf("Create output directory: %v", err)
 			}
 		}
-	}
-
-	if stat != nil && stat.IsDir() {
+	} else if stat.IsDir() {
 		return fmt.Errorf("Output path is a directory.")
 	}
 

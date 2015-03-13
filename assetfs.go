@@ -72,7 +72,7 @@ func (f *AssetFile) Stat() (os.FileInfo, error) {
 }
 
 func (f *AssetFile) GzipBytes() []byte {
-	log.Println("using GzipBytes!")
+	log.Println("using GzipBytes for", f.asset.info.Name())
 	return f.asset.compressedBytes
 }
 

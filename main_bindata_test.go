@@ -232,7 +232,7 @@ func AssetNames() []string {
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
 	"not-worth-compressing-file.txt": not_worth_compressing_file_txt,
-	"sample-file.txt":                sample_file_txt,
+	"sample-file.txt": sample_file_txt,
 }
 
 // AssetDir returns the file names below a certain
@@ -276,8 +276,10 @@ type _bintree_t struct {
 }
 
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{}},
-	"sample-file.txt":                &_bintree_t{sample_file_txt, map[string]*_bintree_t{}},
+	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{
+	}},
+	"sample-file.txt": &_bintree_t{sample_file_txt, map[string]*_bintree_t{
+	}},
 }}
 
 var (

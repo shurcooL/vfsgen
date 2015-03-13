@@ -75,14 +75,13 @@ func header_compressed_nomemcopy(w io.Writer) error {
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
-	"unsafe"
-	"os"
 	"time"
-	"io/ioutil"
-	"path"
-	"path/filepath"
+	"unsafe"
 )
 
 // For assetfs.
@@ -137,6 +136,8 @@ func header_release_common(w io.Writer) error {
 	compressedBytes []byte
 	info            bindata_file_info
 }
+
+func (_ *asset) Close() error { return nil }
 
 type bindata_file_info struct {
 	name             string
@@ -231,7 +232,7 @@ func asset_release_common(w io.Writer, c *Config, asset *Asset, compressedSize i
 	}
 
 	info := bindata_file_info{name: %q, uncompressedSize: %d, compressedSize: %d, mode: os.FileMode(%d), modTime: time.Unix(%d, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info:  info}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
 	return a, nil
 }
 

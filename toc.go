@@ -80,9 +80,10 @@ func (root *assetTree) writeGoMap(w io.Writer, nident int) {
 
 func (root *assetTree) WriteAsGoMap(w io.Writer) error {
 	_, err := fmt.Fprint(w, `type _bintree_t struct {
-	Func func() (*asset, error)
-	Children map[string]*_bintree_t
+	Func     func() (*asset, error)
+	children map[string]*_bintree_t
 }
+
 var _bintree = `)
 	root.writeGoMap(w, 0)
 	return err
@@ -108,7 +109,7 @@ func AssetDir(name string) ([]string, error) {
 		cannonicalName := strings.Replace(name, "\\", "/", -1)
 		pathList := strings.Split(cannonicalName, "/")
 		for _, p := range pathList {
-			node = node.Children[p]
+			node = node.children[p]
 			if node == nil {
 				return nil, fmt.Errorf("Asset %%s not found", name)
 			}
@@ -117,8 +118,8 @@ func AssetDir(name string) ([]string, error) {
 	if node.Func != nil {
 		return nil, fmt.Errorf("Asset %%s not found", name)
 	}
-	rv := make([]string, 0, len(node.Children))
-	for name := range node.Children {
+	rv := make([]string, 0, len(node.children))
+	for name := range node.children {
 		rv = append(rv, name)
 	}
 	return rv, nil
@@ -166,6 +167,18 @@ func Asset(name string) ([]byte, error) {
 			return nil, fmt.Errorf("Asset %%s can't read by error: %%v", name, err)
 		}
 		return a.bytes, nil
+	}
+	return nil, fmt.Errorf("Asset %%s not found", name)
+}
+
+func Asset2(name string) (*asset, error) {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	if f, ok := _bindata[cannonicalName]; ok {
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("Asset %%s can't read by error: %%v", name, err)
+		}
+		return a, nil
 	}
 	return nil, fmt.Errorf("Asset %%s not found", name)
 }

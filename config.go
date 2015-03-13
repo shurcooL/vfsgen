@@ -6,11 +6,12 @@ package bindata
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 
-	"golang.org/x/tools/godoc/vfs"
+	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
 // NewConfig returns a default configuration struct.
@@ -25,7 +26,7 @@ func NewConfig() *Config {
 // Config defines a set of options for the asset conversion.
 type Config struct {
 	// Input is the filesystem that contains input assets to be converted.
-	Input vfs.FileSystem
+	Input http.FileSystem
 
 	// Name of the package to use. Defaults to 'main'.
 	Package string
@@ -56,7 +57,7 @@ func (c *Config) validate() error {
 		return fmt.Errorf("Missing package name")
 	}
 
-	_, err := c.Input.Lstat("/")
+	_, err := vfsutil.Stat(c.Input, "/")
 	if err != nil {
 		return fmt.Errorf("Failed to stat input root: %v", err)
 	}

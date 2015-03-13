@@ -8,6 +8,8 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+
+	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
 // writeAssets writes the code file.
@@ -44,7 +46,6 @@ func writeAsset(w io.Writer, c *Config, asset *Asset) error {
 	if err != nil {
 		return err
 	}
-
 	defer fd.Close()
 
 	compressedSize, err := compressed_nomemcopy(w, asset, fd)
@@ -200,7 +201,7 @@ func %s_bytes_compressed() ([]byte, error) {
 }
 
 func asset_common(w io.Writer, c *Config, asset *Asset, compressedSize int64) error {
-	fi, err := c.Input.Stat(asset.Path)
+	fi, err := vfsutil.Stat(c.Input, asset.Path)
 	if err != nil {
 		return err
 	}

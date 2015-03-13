@@ -8,12 +8,12 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 
-	"github.com/shurcooL/go/vfs/godocfs/vfsutil"
-	"golang.org/x/tools/godoc/vfs"
+	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
 // Translate reads assets from an input directory, converts them
@@ -99,7 +99,7 @@ func (v ByName) Less(i, j int) bool { return v[i].Name() < v[j].Name() }
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findFiles(dir vfs.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownFuncs map[string]int) error {
+func findFiles(fs http.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownFuncs map[string]int) error {
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %s: %v\n", path, err)
@@ -121,13 +121,6 @@ func findFiles(dir vfs.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownF
 			return nil
 		}
 
-		/*if fi.IsDir() {
-			if recursive {
-				return nil
-			} else {
-				return filepath.SkipDir
-			}
-		}*/
 		if fi.IsDir() {
 			return nil
 		}
@@ -149,7 +142,7 @@ func findFiles(dir vfs.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownF
 		return nil
 	}
 
-	err := vfsutil.Walk(dir, "/", walkFn)
+	err := vfsutil.Walk(fs, "/", walkFn)
 	if err != nil {
 		return err
 	}

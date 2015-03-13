@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
@@ -19,81 +20,77 @@ import (
 // to Go code and writes new files to the output specified
 // in the given configuration.
 func Translate(c *Config) error {
-	var toc []Asset
-
 	// Ensure our configuration has sane values.
 	err := c.validate()
 	if err != nil {
 		return err
 	}
 
-	var knownFuncs = make(map[string]int)
 	// Locate all the assets.
+	var toc []Asset
+	var knownFuncs = make(map[string]int)
 	err = findFiles(c.Input, &toc, c.Ignore, knownFuncs)
 	if err != nil {
 		return err
 	}
 
 	// Create output file.
-	fd, err := os.Create(c.Output)
+	f, err := os.Create(c.Output)
 	if err != nil {
 		return err
 	}
-	defer fd.Close()
+	defer f.Close()
 
 	// Create a buffered writer for better performance.
-	bfd := bufio.NewWriter(fd)
-	defer bfd.Flush()
+	buf := bufio.NewWriter(f)
+	defer buf.Flush()
 
 	// Write generated disclaimer.
-	_, err = fmt.Fprintf(bfd, "// generated via `go generate`; do not edit\n\n")
+	_, err = fmt.Fprintf(buf, "// generated via `go generate`; do not edit\n\n")
 	if err != nil {
 		return err
 	}
 
 	// Write build tags, if applicable.
 	if c.Tags != "" {
-		_, err = fmt.Fprintf(bfd, "// +build %s\n\n", c.Tags)
+		_, err = fmt.Fprintf(buf, "// +build %s\n\n", c.Tags)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Write package declaration.
-	_, err = fmt.Fprintf(bfd, "package %s\n\n", c.Package)
+	_, err = fmt.Fprintf(buf, "package %s\n\n", c.Package)
 	if err != nil {
 		return err
 	}
 
 	// Write assets.
-	if err := writeAssets(bfd, c, toc); err != nil {
+	err = writeAssets(buf, c, toc)
+	if err != nil {
 		return err
 	}
 
 	// Write table of contents.
-	if err := writeTOC(bfd, toc); err != nil {
+	err = writeTOC(buf, toc)
+	if err != nil {
 		return err
 	}
 
 	// Write hierarchical tree of assets.
-	if err := writeTOCTree(bfd, toc); err != nil {
+	err = writeTOCTree(buf, toc)
+	if err != nil {
 		return err
 	}
 
 	// Write virtual file system.
-	if err := writeVFS(bfd); err != nil {
+	err = writeVFS(buf)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
-
-// Implement sort.Interface for []os.FileInfo based on Name()
-type ByName []os.FileInfo
-
-func (v ByName) Len() int           { return len(v) }
-func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
-func (v ByName) Less(i, j int) bool { return v[i].Name() < v[j].Name() }
 
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
@@ -125,9 +122,7 @@ func findFiles(fs http.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownF
 		}
 
 		// If we have a leading slash, get rid of it.
-		if len(asset.Name) > 0 && asset.Name[0] == '/' {
-			asset.Name = asset.Name[1:]
-		}
+		asset.Name = strings.TrimPrefix(asset.Name, "/")
 
 		// This shouldn't happen.
 		if len(asset.Name) == 0 {
@@ -147,5 +142,3 @@ func findFiles(fs http.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownF
 
 	return nil
 }
-
-var regFuncName = regexp.MustCompile(`[^a-zA-Z0-9_]`)

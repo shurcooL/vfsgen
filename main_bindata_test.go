@@ -5,21 +5,17 @@ package bindata_test
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
 	"unsafe"
-)
-
-// For assetfs.
-import (
-	"errors"
-	"net/http"
 )
 
 func bindata_read(data, name string) ([]byte, error) {
@@ -282,9 +278,7 @@ var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
 	}},
 }}
 
-var (
-	fileTimestamp = time.Now()
-)
+var fileTimestamp = time.Now()
 
 // FakeFile implements os.FileInfo interface for a given path and size
 type FakeFile struct {

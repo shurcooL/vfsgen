@@ -2,9 +2,12 @@ package bindata
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 )
+
+var regFuncName = regexp.MustCompile(`[^a-zA-Z0-9_]`)
 
 // safeFunctionName converts the given name into a name
 // which qualifies as a valid function identifier. It

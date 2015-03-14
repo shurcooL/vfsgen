@@ -258,21 +258,6 @@ func sample_file_txt() (*asset, error) {
 	return a, nil
 }
 
-// Asset loads and returns the asset for the given name.
-// It returns an error if the asset could not be found or
-// could not be loaded.
-func Asset(name string) ([]byte, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
-		if err != nil {
-			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
-		}
-		return a.bytes, nil
-	}
-	return nil, fmt.Errorf("Asset %s not found", name)
-}
-
 func Asset2(name string) (*asset, error) {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	if f, ok := _bindata[cannonicalName]; ok {
@@ -285,49 +270,13 @@ func Asset2(name string) (*asset, error) {
 	return nil, fmt.Errorf("Asset %s not found", name)
 }
 
-func AssetCompressed(name string) ([]byte, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
-		if err != nil {
-			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
-		}
-		return a.compressedBytes, nil
-	}
-	return nil, fmt.Errorf("Asset %s not found", name)
-}
-
-// AssetInfo loads and returns the asset info for the given name.
-// It returns an error if the asset could not be found or
-// could not be loaded.
-func AssetInfo(name string) (os.FileInfo, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
-		if err != nil {
-			return nil, fmt.Errorf("AssetInfo %s can't read by error: %v", name, err)
-		}
-		return uncompressedFileInfo{a.info}, nil
-	}
-	return nil, fmt.Errorf("AssetInfo %s not found", name)
-}
-
-// AssetNames returns the names of the assets.
-func AssetNames() []string {
-	names := make([]string, 0, len(_bindata))
-	for name := range _bindata {
-		names = append(names, name)
-	}
-	return names
-}
-
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"folderA/file1.txt": foldera_file1_txt,
-	"folderA/file2.txt": foldera_file2_txt,
-	"folderB/folderC/file3.txt": folderb_folderc_file3_txt,
+	"folderA/file1.txt":              foldera_file1_txt,
+	"folderA/file2.txt":              foldera_file2_txt,
+	"folderB/folderC/file3.txt":      folderb_folderc_file3_txt,
 	"not-worth-compressing-file.txt": not_worth_compressing_file_txt,
-	"sample-file.txt": sample_file_txt,
+	"sample-file.txt":                sample_file_txt,
 }
 
 // AssetDir returns the file names below a certain
@@ -372,21 +321,16 @@ type _bintree_t struct {
 
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
 	"folderA": &_bintree_t{nil, map[string]*_bintree_t{
-		"file1.txt": &_bintree_t{foldera_file1_txt, map[string]*_bintree_t{
-		}},
-		"file2.txt": &_bintree_t{foldera_file2_txt, map[string]*_bintree_t{
-		}},
+		"file1.txt": &_bintree_t{foldera_file1_txt, map[string]*_bintree_t{}},
+		"file2.txt": &_bintree_t{foldera_file2_txt, map[string]*_bintree_t{}},
 	}},
 	"folderB": &_bintree_t{nil, map[string]*_bintree_t{
 		"folderC": &_bintree_t{nil, map[string]*_bintree_t{
-			"file3.txt": &_bintree_t{folderb_folderc_file3_txt, map[string]*_bintree_t{
-			}},
+			"file3.txt": &_bintree_t{folderb_folderc_file3_txt, map[string]*_bintree_t{}},
 		}},
 	}},
-	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{
-	}},
-	"sample-file.txt": &_bintree_t{sample_file_txt, map[string]*_bintree_t{
-	}},
+	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{}},
+	"sample-file.txt":                &_bintree_t{sample_file_txt, map[string]*_bintree_t{}},
 }}
 
 var fileTimestamp = time.Now()

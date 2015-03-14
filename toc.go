@@ -163,22 +163,7 @@ func writeTOC(w io.Writer, toc []Asset) error {
 
 // writeTOCHeader writes the table of contents file header.
 func writeTOCHeader(w io.Writer) error {
-	_, err := fmt.Fprintf(w, `// Asset loads and returns the asset for the given name.
-// It returns an error if the asset could not be found or
-// could not be loaded.
-func Asset(name string) ([]byte, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
-		if err != nil {
-			return nil, fmt.Errorf("Asset %%s can't read by error: %%v", name, err)
-		}
-		return a.bytes, nil
-	}
-	return nil, fmt.Errorf("Asset %%s not found", name)
-}
-
-func Asset2(name string) (*asset, error) {
+	_, err := fmt.Fprintf(w, `func Asset2(name string) (*asset, error) {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	if f, ok := _bindata[cannonicalName]; ok {
 		a, err := f()
@@ -188,42 +173,6 @@ func Asset2(name string) (*asset, error) {
 		return a, nil
 	}
 	return nil, fmt.Errorf("Asset %%s not found", name)
-}
-
-func AssetCompressed(name string) ([]byte, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
-		if err != nil {
-			return nil, fmt.Errorf("Asset %%s can't read by error: %%v", name, err)
-		}
-		return a.compressedBytes, nil
-	}
-	return nil, fmt.Errorf("Asset %%s not found", name)
-}
-
-// AssetInfo loads and returns the asset info for the given name.
-// It returns an error if the asset could not be found or
-// could not be loaded.
-func AssetInfo(name string) (os.FileInfo, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
-		if err != nil {
-			return nil, fmt.Errorf("AssetInfo %%s can't read by error: %%v", name, err)
-		}
-		return uncompressedFileInfo{a.info}, nil
-	}
-	return nil, fmt.Errorf("AssetInfo %%s not found", name)
-}
-
-// AssetNames returns the names of the assets.
-func AssetNames() []string {
-	names := make([]string, 0, len(_bindata))
-	for name := range _bindata {
-		names = append(names, name)
-	}
-	return names
 }
 
 // _bindata is a table, holding each asset generator, mapped to its name.

@@ -98,6 +98,102 @@ func (fi compressedFileInfo) Size() int64 {
 	return fi.compressedSize
 }
 
+var _foldera_file1_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"
+
+func foldera_file1_txt_bytes() ([]byte, error) {
+	return bindata_read(
+		_foldera_file1_txt,
+		"folderA/file1.txt",
+	)
+}
+
+func foldera_file1_txt_bytes_compressed() ([]byte, error) {
+	return bindata_read_compressed(
+		_foldera_file1_txt,
+		"folderA/file1.txt",
+	)
+}
+
+func foldera_file1_txt() (*asset, error) {
+	bytes, err := foldera_file1_txt_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	compressedBytes, err := foldera_file1_txt_bytes_compressed()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "folderA/file1.txt", uncompressedSize: 6, compressedSize: 30, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
+	return a, nil
+}
+
+var _foldera_file2_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"
+
+func foldera_file2_txt_bytes() ([]byte, error) {
+	return bindata_read(
+		_foldera_file2_txt,
+		"folderA/file2.txt",
+	)
+}
+
+func foldera_file2_txt_bytes_compressed() ([]byte, error) {
+	return bindata_read_compressed(
+		_foldera_file2_txt,
+		"folderA/file2.txt",
+	)
+}
+
+func foldera_file2_txt() (*asset, error) {
+	bytes, err := foldera_file2_txt_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	compressedBytes, err := foldera_file2_txt_bytes_compressed()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "folderA/file2.txt", uncompressedSize: 6, compressedSize: 30, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
+	return a, nil
+}
+
+var _folderb_folderc_file3_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"
+
+func folderb_folderc_file3_txt_bytes() ([]byte, error) {
+	return bindata_read(
+		_folderb_folderc_file3_txt,
+		"folderB/folderC/file3.txt",
+	)
+}
+
+func folderb_folderc_file3_txt_bytes_compressed() ([]byte, error) {
+	return bindata_read_compressed(
+		_folderb_folderc_file3_txt,
+		"folderB/folderC/file3.txt",
+	)
+}
+
+func folderb_folderc_file3_txt() (*asset, error) {
+	bytes, err := folderb_folderc_file3_txt_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	compressedBytes, err := folderb_folderc_file3_txt_bytes_compressed()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "folderB/folderC/file3.txt", uncompressedSize: 6, compressedSize: 30, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
+	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
+	return a, nil
+}
+
 var _not_worth_compressing_file_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"
 
 func not_worth_compressing_file_txt_bytes() ([]byte, error) {
@@ -227,6 +323,9 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
+	"folderA/file1.txt": foldera_file1_txt,
+	"folderA/file2.txt": foldera_file2_txt,
+	"folderB/folderC/file3.txt": folderb_folderc_file3_txt,
 	"not-worth-compressing-file.txt": not_worth_compressing_file_txt,
 	"sample-file.txt": sample_file_txt,
 }
@@ -272,6 +371,18 @@ type _bintree_t struct {
 }
 
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
+	"folderA": &_bintree_t{nil, map[string]*_bintree_t{
+		"file1.txt": &_bintree_t{foldera_file1_txt, map[string]*_bintree_t{
+		}},
+		"file2.txt": &_bintree_t{foldera_file2_txt, map[string]*_bintree_t{
+		}},
+	}},
+	"folderB": &_bintree_t{nil, map[string]*_bintree_t{
+		"folderC": &_bintree_t{nil, map[string]*_bintree_t{
+			"file3.txt": &_bintree_t{folderb_folderc_file3_txt, map[string]*_bintree_t{
+			}},
+		}},
+	}},
 	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{
 	}},
 	"sample-file.txt": &_bintree_t{sample_file_txt, map[string]*_bintree_t{
@@ -296,11 +407,10 @@ func (f *FakeFile) Name() string {
 }
 
 func (f *FakeFile) Mode() os.FileMode {
-	mode := os.FileMode(0644)
 	if f.Dir {
-		return mode | os.ModeDir
+		return 0755 | os.ModeDir
 	}
-	return mode
+	return 0444
 }
 
 func (f *FakeFile) ModTime() time.Time {

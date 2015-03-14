@@ -2,7 +2,6 @@ package bindata
 
 import (
 	"net/http"
-	"regexp"
 	"testing"
 )
 
@@ -18,7 +17,7 @@ func TestSafeFunctionName(t *testing.T) {
 func TestFindFiles(t *testing.T) {
 	var toc []Asset
 	var knownFuncs = make(map[string]int)
-	err := findFiles(http.Dir("./testdata/dupname/"), &toc, []*regexp.Regexp{}, knownFuncs)
+	err := findFiles(http.Dir("./testdata/dupname/"), &toc, knownFuncs)
 	if err != nil {
 		t.Errorf("expected to be no error: %+v", err)
 	}

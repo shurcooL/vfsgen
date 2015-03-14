@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
@@ -19,7 +18,7 @@ func NewConfig() *Config {
 	return &Config{
 		Package: "main",
 		Output:  "./bindata.go",
-		Ignore:  make([]*regexp.Regexp, 0),
+		//OutputName: "AssetsFs",
 	}
 }
 
@@ -38,16 +37,13 @@ type Config struct {
 	Tags string
 
 	// Output defines the output file for the generated code.
-	// If left empty, this defaults to 'bindata.go' in the current
+	// If left empty, this defaults to "bindata.go" in the current
 	// working directory.
 	Output string
 
-	// Ignores any filenames matching the regex pattern specified, e.g.
-	// path/to/file.ext will ignore only that file, or \\.gitignore
-	// will match any .gitignore file.
-	//
-	// This parameter can be provided multiple times.
-	Ignore []*regexp.Regexp
+	// OutputName defines the output filesystem variable name.
+	// If left empty, this defaults to "AssetsFs".
+	//OutputName string
 }
 
 // validate ensures the config has sane values.

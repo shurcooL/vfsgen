@@ -38,6 +38,15 @@ func Example() {
 
 	// Output:
 	// /
+	// /folderA
+	// /folderA/file1.txt
+	// "Stuff." <nil>
+	// /folderA/file2.txt
+	// "Stuff." <nil>
+	// /folderB
+	// /folderB/folderC
+	// /folderB/folderC/file3.txt
+	// "Stuff." <nil>
 	// /not-worth-compressing-file.txt
 	// "Its normal contents are here." <nil>
 	// /sample-file.txt
@@ -89,6 +98,18 @@ func ExampleCompressed() {
 
 	// Output:
 	// /
+	// /folderA
+	// /folderA/file1.txt
+	// "Stuff." <nil>
+	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n.)MK\xd3\x03\x04\x00\x00\xff\xff'\xbb@\xc8\x06\x00\x00\x00"
+	// /folderA/file2.txt
+	// "Stuff." <nil>
+	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n.)MK\xd3\x03\x04\x00\x00\xff\xff'\xbb@\xc8\x06\x00\x00\x00"
+	// /folderB
+	// /folderB/folderC
+	// /folderB/folderC/file3.txt
+	// "Stuff." <nil>
+	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n.)MK\xd3\x03\x04\x00\x00\xff\xff'\xbb@\xc8\x06\x00\x00\x00"
 	// /not-worth-compressing-file.txt
 	// "Its normal contents are here." <nil>
 	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\xf2,)V\xc8\xcb/\xcaM\xccQH\xce\xcf+I\xcd\x03\xf2\x13\x8bR\x152R\x8bR\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"

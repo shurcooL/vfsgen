@@ -229,11 +229,10 @@ func (f *FakeFile) Name() string {
 }
 
 func (f *FakeFile) Mode() os.FileMode {
-	mode := os.FileMode(0644)
 	if f.Dir {
-		return mode | os.ModeDir
+		return 0755 | os.ModeDir
 	}
-	return mode
+	return 0444
 }
 
 func (f *FakeFile) ModTime() time.Time {

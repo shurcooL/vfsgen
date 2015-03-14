@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
@@ -29,7 +28,7 @@ func Translate(c *Config) error {
 	// Locate all the assets.
 	var toc []Asset
 	var knownFuncs = make(map[string]int)
-	err = findFiles(c.Input, &toc, c.Ignore, knownFuncs)
+	err = findFiles(c.Input, &toc, knownFuncs)
 	if err != nil {
 		return err
 	}
@@ -95,7 +94,7 @@ func Translate(c *Config) error {
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findFiles(fs http.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownFuncs map[string]int) error {
+func findFiles(fs http.FileSystem, toc *[]Asset, knownFuncs map[string]int) error {
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %s: %v\n", path, err)
@@ -105,17 +104,6 @@ func findFiles(fs http.FileSystem, toc *[]Asset, ignore []*regexp.Regexp, knownF
 		var asset Asset
 		asset.Path = path
 		asset.Name = path
-
-		ignoring := false
-		for _, re := range ignore {
-			if re.MatchString(asset.Path) {
-				ignoring = true
-				break
-			}
-		}
-		if ignoring {
-			return nil
-		}
 
 		if fi.IsDir() {
 			return nil

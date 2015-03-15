@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/shurcooL/go-bindata"
+	"github.com/shurcooL/vfsgen"
 	"golang.org/x/tools/godoc/vfs/httpfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
@@ -20,12 +20,12 @@ func main() {
 		"folderB/folderC/file3.txt":      "Stuff.",
 	}))
 
-	cfg := bindata.NewConfig()
+	cfg := vfsgen.NewConfig()
 	cfg.Input = fs
-	cfg.Package = "bindata_test"
-	cfg.Output = "./main_bindata_test.go"
+	cfg.Package = "vfsgen_test"
+	cfg.Output = "./main_vfsgen_test.go"
 
-	err := bindata.Translate(cfg)
+	err := vfsgen.Translate(cfg)
 	if err != nil {
 		log.Fatalln(err)
 	}

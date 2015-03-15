@@ -1,4 +1,4 @@
-package bindata_test
+package vfsgen_test
 
 import (
 	"fmt"

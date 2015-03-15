@@ -1,6 +1,6 @@
 // generated via `go generate`; do not edit
 
-package bindata_test
+package vfsgen_test
 
 import (
 	"bytes"

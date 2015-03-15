@@ -1,7 +1,7 @@
-not-yet-named
-=============
+vfsgen
+======
 
-Not yet described.
+Package vfsgen generates a vfsdata.go file that statically implements the given virtual filesystem.
 
 License
 -------

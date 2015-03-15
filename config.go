@@ -1,8 +1,4 @@
-// This work is subject to the CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
-// license. Its contents can be found at:
-// http://creativecommons.org/publicdomain/zero/1.0/
-
-package bindata
+package vfsgen
 
 import (
 	"fmt"
@@ -17,7 +13,7 @@ import (
 func NewConfig() *Config {
 	return &Config{
 		Package: "main",
-		Output:  "./bindata.go",
+		Output:  "./vfsdata.go",
 		//OutputName: "AssetsFs",
 	}
 }
@@ -37,7 +33,7 @@ type Config struct {
 	Tags string
 
 	// Output defines the output file for the generated code.
-	// If left empty, this defaults to "bindata.go" in the current
+	// If left empty, this defaults to "vfsdata.go" in the current
 	// working directory.
 	Output string
 
@@ -64,7 +60,7 @@ func (c *Config) validate() error {
 			return fmt.Errorf("Unable to determine current working directory.")
 		}
 
-		c.Output = filepath.Join(cwd, "bindata.go")
+		c.Output = filepath.Join(cwd, "vfsdata.go")
 	}
 
 	stat, err := os.Lstat(c.Output)

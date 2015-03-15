@@ -1,4 +1,4 @@
-package bindata
+package vfsgen
 
 import (
 	"fmt"

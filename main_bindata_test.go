@@ -5,485 +5,172 @@ package bindata_test
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
 	"time"
-	"unsafe"
 )
 
-func bindata_read(data, name string) ([]byte, error) {
-	var empty [0]byte
-	sx := (*reflect.StringHeader)(unsafe.Pointer(&data))
-	b := empty[:]
-	bx := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bx.Data = sx.Data
-	bx.Len = len(data)
-	bx.Cap = bx.Len
+var AssetsFs http.FileSystem = _assetFS
 
-	gz, err := gzip.NewReader(bytes.NewBuffer(b))
-	if err != nil {
-		return nil, fmt.Errorf("Read %q: %v", name, err)
+type AssetFS map[string]interface{}
+
+var _assetFS = AssetFS{
+	"/folderA/file1.txt": &compressedFile{
+		name:              "file1.txt",
+		compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
+		uncompressedSize:  6,
+		modTime:           time.Time{},
+	},
+	"/folderA/file2.txt": &compressedFile{
+		name:              "file2.txt",
+		compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
+		uncompressedSize:  6,
+		modTime:           time.Time{},
+	},
+	"/folderB/folderC/file3.txt": &compressedFile{
+		name:              "file3.txt",
+		compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
+		uncompressedSize:  6,
+		modTime:           time.Time{},
+	},
+	"/not-worth-compressing-file.txt": &compressedFile{
+		name:              "not-worth-compressing-file.txt",
+		compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"),
+		uncompressedSize:  29,
+		modTime:           time.Time{},
+	},
+	"/sample-file.txt": &compressedFile{
+		name:              "sample-file.txt",
+		compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x0f\x10\x00\x00\xff\xff\x76\x5a\x3e\xaa\xbd\x00\x00\x00"),
+		uncompressedSize:  189,
+		modTime:           time.Time{},
+	},
+}
+
+func init() {
+	_assetFS["/folderB/folderC"] = &dir{
+		name: "folderC",
+		entries: []os.FileInfo{
+			_assetFS["/folderB/folderC/file3.txt"].(os.FileInfo),
+		},
+		modTime: time.Time{},
+	}
+	_assetFS["/folderA"] = &dir{
+		name: "folderA",
+		entries: []os.FileInfo{
+			_assetFS["/folderA/file1.txt"].(os.FileInfo),
+			_assetFS["/folderA/file2.txt"].(os.FileInfo),
+		},
+		modTime: time.Time{},
+	}
+	_assetFS["/folderB"] = &dir{
+		name: "folderB",
+		entries: []os.FileInfo{
+			_assetFS["/folderB/folderC"].(os.FileInfo),
+		},
+		modTime: time.Time{},
+	}
+	_assetFS["/"] = &dir{
+		name: "/",
+		entries: []os.FileInfo{
+			_assetFS["/folderA"].(os.FileInfo),
+			_assetFS["/folderB"].(os.FileInfo),
+			_assetFS["/not-worth-compressing-file.txt"].(os.FileInfo),
+			_assetFS["/sample-file.txt"].(os.FileInfo),
+		},
+		modTime: time.Time{},
+	}
+}
+
+func (fs AssetFS) Open(path string) (http.File, error) {
+	f, ok := fs[path]
+	if !ok {
+		return nil, os.ErrNotExist
 	}
 
-	var buf bytes.Buffer
-	_, err = io.Copy(&buf, gz)
-	gz.Close()
-
-	if err != nil {
-		return nil, fmt.Errorf("Read %q: %v", name, err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-func bindata_read_compressed(data, name string) ([]byte, error) {
-	var empty [0]byte
-	sx := (*reflect.StringHeader)(unsafe.Pointer(&data))
-	b := empty[:]
-	bx := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bx.Data = sx.Data
-	bx.Len = len(data)
-	bx.Cap = bx.Len
-	return b, nil
-}
-
-type asset struct {
-	bytes           []byte
-	compressedBytes []byte
-	info            bindata_file_info
-}
-
-func (_ *asset) Close() error { return nil }
-
-type bindata_file_info struct {
-	name             string
-	uncompressedSize int64
-	compressedSize   int64
-	mode             os.FileMode
-	modTime          time.Time
-}
-
-func (fi bindata_file_info) Name() string {
-	return fi.name
-}
-func (fi bindata_file_info) Mode() os.FileMode {
-	return fi.mode
-}
-func (fi bindata_file_info) ModTime() time.Time {
-	return fi.modTime
-}
-func (fi bindata_file_info) IsDir() bool {
-	return false
-}
-func (fi bindata_file_info) Sys() interface{} {
-	return nil
-}
-
-type uncompressedFileInfo struct{ bindata_file_info }
-
-func (fi uncompressedFileInfo) Size() int64 {
-	return fi.uncompressedSize
-}
-
-type compressedFileInfo struct{ bindata_file_info }
-
-func (fi compressedFileInfo) Size() int64 {
-	return fi.compressedSize
-}
-
-var _foldera_file1_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"
-
-func foldera_file1_txt_bytes() ([]byte, error) {
-	return bindata_read(
-		_foldera_file1_txt,
-		"folderA/file1.txt",
-	)
-}
-
-func foldera_file1_txt_bytes_compressed() ([]byte, error) {
-	return bindata_read_compressed(
-		_foldera_file1_txt,
-		"folderA/file1.txt",
-	)
-}
-
-func foldera_file1_txt() (*asset, error) {
-	bytes, err := foldera_file1_txt_bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	compressedBytes, err := foldera_file1_txt_bytes_compressed()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindata_file_info{name: "folderA/file1.txt", uncompressedSize: 6, compressedSize: 30, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
-	return a, nil
-}
-
-var _foldera_file2_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"
-
-func foldera_file2_txt_bytes() ([]byte, error) {
-	return bindata_read(
-		_foldera_file2_txt,
-		"folderA/file2.txt",
-	)
-}
-
-func foldera_file2_txt_bytes_compressed() ([]byte, error) {
-	return bindata_read_compressed(
-		_foldera_file2_txt,
-		"folderA/file2.txt",
-	)
-}
-
-func foldera_file2_txt() (*asset, error) {
-	bytes, err := foldera_file2_txt_bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	compressedBytes, err := foldera_file2_txt_bytes_compressed()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindata_file_info{name: "folderA/file2.txt", uncompressedSize: 6, compressedSize: 30, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
-	return a, nil
-}
-
-var _folderb_folderc_file3_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"
-
-func folderb_folderc_file3_txt_bytes() ([]byte, error) {
-	return bindata_read(
-		_folderb_folderc_file3_txt,
-		"folderB/folderC/file3.txt",
-	)
-}
-
-func folderb_folderc_file3_txt_bytes_compressed() ([]byte, error) {
-	return bindata_read_compressed(
-		_folderb_folderc_file3_txt,
-		"folderB/folderC/file3.txt",
-	)
-}
-
-func folderb_folderc_file3_txt() (*asset, error) {
-	bytes, err := folderb_folderc_file3_txt_bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	compressedBytes, err := folderb_folderc_file3_txt_bytes_compressed()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindata_file_info{name: "folderB/folderC/file3.txt", uncompressedSize: 6, compressedSize: 30, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
-	return a, nil
-}
-
-var _not_worth_compressing_file_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"
-
-func not_worth_compressing_file_txt_bytes() ([]byte, error) {
-	return bindata_read(
-		_not_worth_compressing_file_txt,
-		"not-worth-compressing-file.txt",
-	)
-}
-
-func not_worth_compressing_file_txt_bytes_compressed() ([]byte, error) {
-	return bindata_read_compressed(
-		_not_worth_compressing_file_txt,
-		"not-worth-compressing-file.txt",
-	)
-}
-
-func not_worth_compressing_file_txt() (*asset, error) {
-	bytes, err := not_worth_compressing_file_txt_bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	compressedBytes, err := not_worth_compressing_file_txt_bytes_compressed()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindata_file_info{name: "not-worth-compressing-file.txt", uncompressedSize: 29, compressedSize: 52, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
-	return a, nil
-}
-
-var _sample_file_txt = "\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x0f\x10\x00\x00\xff\xff\x76\x5a\x3e\xaa\xbd\x00\x00\x00"
-
-func sample_file_txt_bytes() ([]byte, error) {
-	return bindata_read(
-		_sample_file_txt,
-		"sample-file.txt",
-	)
-}
-
-func sample_file_txt_bytes_compressed() ([]byte, error) {
-	return bindata_read_compressed(
-		_sample_file_txt,
-		"sample-file.txt",
-	)
-}
-
-func sample_file_txt() (*asset, error) {
-	bytes, err := sample_file_txt_bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	compressedBytes, err := sample_file_txt_bytes_compressed()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindata_file_info{name: "sample-file.txt", uncompressedSize: 189, compressedSize: 58, mode: os.FileMode(292), modTime: time.Unix(-62135596800, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
-	return a, nil
-}
-
-func Asset2(name string) (*asset, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
-	if f, ok := _bindata[cannonicalName]; ok {
-		a, err := f()
+	if cf, ok := f.(*compressedFile); ok {
+		gr, err := gzip.NewReader(bytes.NewReader(cf.compressedContent))
 		if err != nil {
-			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
+			// This should never happen because we generate the gzip bytes such that they are always valid.
+			panic("unexpected error reading own gzip compressed bytes: " + err.Error())
 		}
-		return a, nil
+		return &compressedFileInstance{
+			compressedFile: cf,
+			gr:             gr,
+		}, nil
 	}
-	return nil, fmt.Errorf("Asset %s not found", name)
+
+	return f.(http.File), nil
 }
 
-// _bindata is a table, holding each asset generator, mapped to its name.
-var _bindata = map[string]func() (*asset, error){
-	"folderA/file1.txt":              foldera_file1_txt,
-	"folderA/file2.txt":              foldera_file2_txt,
-	"folderB/folderC/file3.txt":      folderb_folderc_file3_txt,
-	"not-worth-compressing-file.txt": not_worth_compressing_file_txt,
-	"sample-file.txt":                sample_file_txt,
+// compressedFile is ...
+type compressedFile struct {
+	name              string
+	compressedContent []byte
+	uncompressedSize  int64
+	modTime           time.Time
 }
 
-// AssetDir returns the file names below a certain
-// directory embedded in the file by go-bindata.
-// For example if you run go-bindata on data/... and data contains the
-// following hierarchy:
-//     data/
-//       foo.txt
-//       img/
-//         a.png
-//         b.png
-// then AssetDir("data") would return []string{"foo.txt", "img"}
-// AssetDir("data/img") would return []string{"a.png", "b.png"}
-// AssetDir("foo.txt") and AssetDir("notexist") would return an error
-// AssetDir("") will return []string{"data"}.
-func AssetDir(name string) ([]string, error) {
-	node := _bintree
-	if len(name) != 0 {
-		cannonicalName := strings.Replace(name, "\\", "/", -1)
-		pathList := strings.Split(cannonicalName, "/")
-		for _, p := range pathList {
-			node = node.children[p]
-			if node == nil {
-				return nil, fmt.Errorf("Asset %s not found", name)
-			}
-		}
+func (f *compressedFile) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, fmt.Errorf("cannot Readdir from file %s", f.name)
+}
+func (f *compressedFile) Stat() (os.FileInfo, error) { return f, nil }
+
+func (f *compressedFile) GzipBytes() []byte {
+	log.Println("using GzipBytes for", f.name)
+	return f.compressedContent
+}
+
+func (f *compressedFile) Name() string       { return f.name }
+func (f *compressedFile) Size() int64        { return f.uncompressedSize }
+func (f *compressedFile) Mode() os.FileMode  { return 0444 }
+func (f *compressedFile) ModTime() time.Time { return f.modTime }
+func (f *compressedFile) IsDir() bool        { return false }
+func (f *compressedFile) Sys() interface{}   { return nil }
+
+type compressedFileInstance struct {
+	*compressedFile
+	gr io.ReadCloser
+}
+
+func (f *compressedFileInstance) Read(p []byte) (n int, err error) {
+	return f.gr.Read(p)
+}
+func (f *compressedFileInstance) Seek(offset int64, whence int) (int64, error) {
+	panic("Seek not yet implemented")
+}
+func (f *compressedFileInstance) Close() error {
+	return f.gr.Close()
+}
+
+// dir is ...
+type dir struct {
+	name    string
+	entries []os.FileInfo
+	modTime time.Time
+}
+
+func (d *dir) Read([]byte) (int, error) {
+	return 0, fmt.Errorf("cannot Read from directory %s", d.name)
+}
+func (d *dir) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("cannot Seek in directory %s", d.name)
+}
+func (d *dir) Close() error { return nil }
+func (d *dir) Readdir(count int) ([]os.FileInfo, error) {
+	if count != 0 {
+		log.Panicln("httpDir.Readdir count unsupported value:", count)
 	}
-	if node.Func != nil {
-		return nil, fmt.Errorf("Asset %s not found", name)
-	}
-	rv := make([]string, 0, len(node.children))
-	for name := range node.children {
-		rv = append(rv, name)
-	}
-	return rv, nil
+	return d.entries, nil
 }
+func (d *dir) Stat() (os.FileInfo, error) { return d, nil }
 
-type _bintree_t struct {
-	Func     func() (*asset, error)
-	children map[string]*_bintree_t
-}
-
-var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"folderA": &_bintree_t{nil, map[string]*_bintree_t{
-		"file1.txt": &_bintree_t{foldera_file1_txt, map[string]*_bintree_t{}},
-		"file2.txt": &_bintree_t{foldera_file2_txt, map[string]*_bintree_t{}},
-	}},
-	"folderB": &_bintree_t{nil, map[string]*_bintree_t{
-		"folderC": &_bintree_t{nil, map[string]*_bintree_t{
-			"file3.txt": &_bintree_t{folderb_folderc_file3_txt, map[string]*_bintree_t{}},
-		}},
-	}},
-	"not-worth-compressing-file.txt": &_bintree_t{not_worth_compressing_file_txt, map[string]*_bintree_t{}},
-	"sample-file.txt":                &_bintree_t{sample_file_txt, map[string]*_bintree_t{}},
-}}
-
-var fileTimestamp = time.Now()
-
-// FakeFile implements os.FileInfo interface for a given path and size
-type FakeFile struct {
-	// Path is the path of this file
-	Path string
-	// Dir marks of the path is a directory
-	Dir bool
-	// Len is the length of the fake file, zero if it is a directory
-	Len int64
-}
-
-func (f *FakeFile) Name() string {
-	_, name := filepath.Split(f.Path)
-	return name
-}
-
-func (f *FakeFile) Mode() os.FileMode {
-	if f.Dir {
-		return 0755 | os.ModeDir
-	}
-	return 0444
-}
-
-func (f *FakeFile) ModTime() time.Time {
-	return fileTimestamp
-}
-
-func (f *FakeFile) Size() int64 {
-	return f.Len
-}
-
-func (f *FakeFile) IsDir() bool {
-	return f.Mode().IsDir()
-}
-
-func (f *FakeFile) Sys() interface{} {
-	return nil
-}
-
-// AssetFile implements http.File interface for a no-directory file with content
-type AssetFile struct {
-	*bytes.Reader
-	*asset
-}
-
-/*func NewAssetFile(name string, content []byte) *AssetFile {
-	return &AssetFile{
-		bytes.NewReader(content),
-		FakeFile{name, false, int64(len(content))},
-	}
-}*/
-
-func (f *AssetFile) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, errors.New("not a directory")
-}
-
-func (f *AssetFile) Stat() (os.FileInfo, error) {
-	return uncompressedFileInfo{f.asset.info}, nil
-}
-
-func (f *AssetFile) GzipBytes() []byte {
-	log.Println("using GzipBytes for", f.asset.info.Name())
-	return f.asset.compressedBytes
-}
-
-func (_ *AssetFile) Close() error { return nil }
-
-type AssetFileOld struct {
-	*bytes.Reader
-	FakeFile
-}
-
-func (f *AssetFileOld) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, errors.New("not a directory")
-}
-
-func (f *AssetFileOld) Stat() (os.FileInfo, error) {
-	return f, nil
-}
-
-func (_ *AssetFileOld) Close() error {
-	return nil
-}
-
-// AssetDirectory implements http.File interface for a directory
-type AssetDirectory struct {
-	name          string
-	io.ReadSeeker // TODO: nil so will panic.
-	childrenRead  int
-	children      []os.FileInfo
-}
-
-func NewAssetDirectory(name string, children []string, fs *AssetFS) *AssetDirectory {
-	fileinfos := make([]os.FileInfo, 0, len(children))
-	for _, child := range children {
-		_, err := AssetDir(filepath.Join(name, child))
-		fileinfos = append(fileinfos, &FakeFile{child, err == nil, 0})
-	}
-	return &AssetDirectory{
-		/*AssetFileOld: AssetFileOld{
-			bytes.NewReader(nil),
-			FakeFile{Path: name, Dir: true, Len:0},
-		},*/
-		name:         name,
-		childrenRead: 0,
-		children:     fileinfos,
-	}
-}
-
-func (f *AssetDirectory) Readdir(count int) ([]os.FileInfo, error) {
-	if count <= 0 {
-		return f.children, nil
-	}
-	if f.childrenRead+count > len(f.children) {
-		count = len(f.children) - f.childrenRead
-	}
-	rv := f.children[f.childrenRead : f.childrenRead+count]
-	f.childrenRead += count
-	return rv, nil
-}
-
-func (f *AssetDirectory) Stat() (os.FileInfo, error) {
-	return &FakeFile{Path: f.name, Dir: true, Len: 0}, nil
-}
-
-func (_ *AssetDirectory) Close() error { return nil }
-
-// TODO: To be final output.
-//var AssetsFs = godocfs.New(&AssetFS{})
-var AssetsFs http.FileSystem = &AssetFS{}
-
-// AssetFS implements http.FileSystem, allowing
-// embedded files to be served from net/http package.
-type AssetFS struct{}
-
-func (fs *AssetFS) Open(name string) (http.File, error) {
-	if len(name) > 0 && name[0] == '/' {
-		name = name[1:]
-	}
-	if children, err := AssetDir(name); err == nil {
-		return NewAssetDirectory(name, children, fs), nil
-	}
-	a, err := Asset2(name)
-	if err != nil {
-		return nil, err
-	}
-	//return a, nil
-	return &AssetFile{
-		Reader: bytes.NewReader(a.bytes),
-		asset:  a,
-		//FakeFile: FakeFile{name, false, int64(len(a.bytes))},
-	}, nil
-}
+func (d *dir) Name() string       { return d.name }
+func (d *dir) Size() int64        { return 0 }
+func (d *dir) Mode() os.FileMode  { return 0755 | os.ModeDir }
+func (d *dir) ModTime() time.Time { return d.modTime }
+func (d *dir) IsDir() bool        { return true }
+func (d *dir) Sys() interface{}   { return nil }

@@ -2,6 +2,7 @@ package bindata_test
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -116,4 +117,31 @@ func ExampleCompressed() {
 	// /sample-file.txt
 	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah." <nil>
 	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x0f\x10\x00\x00\xff\xffvZ>\xaa\xbd\x00\x00\x00"
+}
+
+func ExampleReadTwoOpenedFiles() {
+	var fs http.FileSystem = AssetsFs
+
+	f0, err := fs.Open("/sample-file.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f0.Close()
+	f1, err := fs.Open("/sample-file.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f1.Close()
+
+	_, err = io.CopyN(os.Stdout, f0, 9)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.CopyN(os.Stdout, f1, 9)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// This fileThis file
 }

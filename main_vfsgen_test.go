@@ -19,6 +19,14 @@ type AssetFS map[string]interface{}
 
 var _assetFS = func() AssetFS {
 	_assetFS := AssetFS{
+		"/": &dir{
+			name:    "/",
+			modTime: time.Time{},
+		},
+		"/folderA": &dir{
+			name:    "folderA",
+			modTime: time.Time{},
+		},
 		"/folderA/file1.txt": &compressedFile{
 			name:              "file1.txt",
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
@@ -30,6 +38,14 @@ var _assetFS = func() AssetFS {
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
 			uncompressedSize:  6,
 			modTime:           time.Time{},
+		},
+		"/folderB": &dir{
+			name:    "folderB",
+			modTime: time.Time{},
+		},
+		"/folderB/folderC": &dir{
+			name:    "folderC",
+			modTime: time.Time{},
 		},
 		"/folderB/folderC/file3.txt": &compressedFile{
 			name:              "file3.txt",
@@ -51,37 +67,21 @@ var _assetFS = func() AssetFS {
 		},
 	}
 
-	_assetFS["/folderB/folderC"] = &dir{
-		name: "folderC",
-		entries: []os.FileInfo{
-			_assetFS["/folderB/folderC/file3.txt"].(os.FileInfo),
-		},
-		modTime: time.Time{},
+	_assetFS["/"].(*dir).entries = []os.FileInfo{
+		_assetFS["/folderA"].(os.FileInfo),
+		_assetFS["/folderB"].(os.FileInfo),
+		_assetFS["/not-worth-compressing-file.txt"].(os.FileInfo),
+		_assetFS["/sample-file.txt"].(os.FileInfo),
 	}
-	_assetFS["/folderA"] = &dir{
-		name: "folderA",
-		entries: []os.FileInfo{
-			_assetFS["/folderA/file1.txt"].(os.FileInfo),
-			_assetFS["/folderA/file2.txt"].(os.FileInfo),
-		},
-		modTime: time.Time{},
+	_assetFS["/folderA"].(*dir).entries = []os.FileInfo{
+		_assetFS["/folderA/file1.txt"].(os.FileInfo),
+		_assetFS["/folderA/file2.txt"].(os.FileInfo),
 	}
-	_assetFS["/folderB"] = &dir{
-		name: "folderB",
-		entries: []os.FileInfo{
-			_assetFS["/folderB/folderC"].(os.FileInfo),
-		},
-		modTime: time.Time{},
+	_assetFS["/folderB"].(*dir).entries = []os.FileInfo{
+		_assetFS["/folderB/folderC"].(os.FileInfo),
 	}
-	_assetFS["/"] = &dir{
-		name: "/",
-		entries: []os.FileInfo{
-			_assetFS["/folderA"].(os.FileInfo),
-			_assetFS["/folderB"].(os.FileInfo),
-			_assetFS["/not-worth-compressing-file.txt"].(os.FileInfo),
-			_assetFS["/sample-file.txt"].(os.FileInfo),
-		},
-		modTime: time.Time{},
+	_assetFS["/folderB/folderC"].(*dir).entries = []os.FileInfo{
+		_assetFS["/folderB/folderC/file3.txt"].(os.FileInfo),
 	}
 
 	return _assetFS

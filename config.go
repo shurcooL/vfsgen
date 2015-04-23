@@ -63,8 +63,8 @@ func (c *Config) validate() error {
 		c.Output = filepath.Join(cwd, "vfsdata.go")
 	}
 
-	stat, err := os.Lstat(c.Output)
-	if err != nil {
+	switch stat, err := os.Lstat(c.Output); {
+	case err != nil:
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("Output path: %v", err)
 		}
@@ -79,7 +79,7 @@ func (c *Config) validate() error {
 				return fmt.Errorf("Create output directory: %v", err)
 			}
 		}
-	} else if stat.IsDir() {
+	case stat.IsDir():
 		return fmt.Errorf("Output path is a directory.")
 	}
 

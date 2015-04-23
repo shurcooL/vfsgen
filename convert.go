@@ -23,8 +23,7 @@ func Translate(c *Config) error {
 
 	// Locate all the assets.
 	var toc []Asset
-	var knownFuncs = make(map[string]int)
-	err = findFiles(c.Input, &toc, knownFuncs)
+	err = findFiles(c.Input, &toc)
 	if err != nil {
 		return err
 	}
@@ -66,18 +65,6 @@ func Translate(c *Config) error {
 		return err
 	}
 
-	// Write table of contents.
-	err = writeTOC(buf, toc)
-	if err != nil {
-		return err
-	}
-
-	// Write hierarchical tree of assets.
-	err = writeTOCTree(buf, toc)
-	if err != nil {
-		return err
-	}
-
 	// Write virtual file system.
 	err = writeVFS(buf)
 	if err != nil {
@@ -87,10 +74,19 @@ func Translate(c *Config) error {
 	return nil
 }
 
+// TODO.
+//
+// Asset holds information about a single asset to be processed.
+type Asset struct {
+	Path string // Full file path.
+	Name string // Key used in TOC -- name by which asset is referenced.
+	Func string // Function name for the procedure returning the asset contents.
+}
+
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findFiles(fs http.FileSystem, toc *[]Asset, knownFuncs map[string]int) error {
+func findFiles(fs http.FileSystem, toc *[]Asset) error {
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %s: %v\n", path, err)
@@ -113,8 +109,8 @@ func findFiles(fs http.FileSystem, toc *[]Asset, knownFuncs map[string]int) erro
 			return fmt.Errorf("Invalid file: %v", asset.Path)
 		}
 
-		asset.Func = safeFunctionName(asset.Name, knownFuncs)
-		*toc = append(*toc, asset)
+		//asset.Func = safeFunctionName(asset.Name, knownFuncs)
+		//*toc = append(*toc, asset)
 
 		return nil
 	}

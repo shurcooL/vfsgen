@@ -31,98 +31,13 @@ func writeHeader(w io.Writer, c *Config) error {
 	_, err := fmt.Fprint(w, `import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
 	"time"
-	"unsafe"
 )
-
-func bindata_read(data, name string) ([]byte, error) {
-	var empty [0]byte
-	sx := (*reflect.StringHeader)(unsafe.Pointer(&data))
-	b := empty[:]
-	bx := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bx.Data = sx.Data
-	bx.Len = len(data)
-	bx.Cap = bx.Len
-
-	gz, err := gzip.NewReader(bytes.NewBuffer(b))
-	if err != nil {
-		return nil, fmt.Errorf("Read %q: %v", name, err)
-	}
-
-	var buf bytes.Buffer
-	_, err = io.Copy(&buf, gz)
-	gz.Close()
-
-	if err != nil {
-		return nil, fmt.Errorf("Read %q: %v", name, err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-func bindata_read_compressed(data, name string) ([]byte, error) {
-	var empty [0]byte
-	sx := (*reflect.StringHeader)(unsafe.Pointer(&data))
-	b := empty[:]
-	bx := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bx.Data = sx.Data
-	bx.Len = len(data)
-	bx.Cap = bx.Len
-	return b, nil
-}
-
-type asset struct {
-	bytes           []byte
-	compressedBytes []byte
-	info            bindata_file_info
-}
-
-func (_ *asset) Close() error { return nil }
-
-type bindata_file_info struct {
-	name             string
-	uncompressedSize int64
-	compressedSize   int64
-	mode             os.FileMode
-	modTime          time.Time
-}
-
-func (fi bindata_file_info) Name() string {
-	return fi.name
-}
-func (fi bindata_file_info) Mode() os.FileMode {
-	return fi.mode
-}
-func (fi bindata_file_info) ModTime() time.Time {
-	return fi.modTime
-}
-func (fi bindata_file_info) IsDir() bool {
-	return false
-}
-func (fi bindata_file_info) Sys() interface{} {
-	return nil
-}
-
-type uncompressedFileInfo struct{ bindata_file_info }
-
-func (fi uncompressedFileInfo) Size() int64 {
-	return fi.uncompressedSize
-}
-
-type compressedFileInfo struct{ bindata_file_info }
-
-func (fi compressedFileInfo) Size() int64 {
-	return fi.compressedSize
-}
 
 `)
 	return err
@@ -208,160 +123,95 @@ func writeAssetCommon(w io.Writer, c *Config, asset *Asset, compressedSize int64
 
 func writeVFS(w io.Writer) error {
 	_, err := fmt.Fprint(w, `
-var fileTimestamp = time.Now()
-
-// FakeFile implements os.FileInfo interface for a given path and size
-type FakeFile struct {
-	// Path is the path of this file
-	Path string
-	// Dir marks of the path is a directory
-	Dir bool
-	// Len is the length of the fake file, zero if it is a directory
-	Len int64
-}
-
-func (f *FakeFile) Name() string {
-	_, name := filepath.Split(f.Path)
-	return name
-}
-
-func (f *FakeFile) Mode() os.FileMode {
-	if f.Dir {
-		return 0755 | os.ModeDir
+func (fs AssetFS) Open(path string) (http.File, error) {
+	f, ok := fs[path]
+	if !ok {
+		return nil, os.ErrNotExist
 	}
-	return 0444
-}
 
-func (f *FakeFile) ModTime() time.Time {
-	return fileTimestamp
-}
-
-func (f *FakeFile) Size() int64 {
-	return f.Len
-}
-
-func (f *FakeFile) IsDir() bool {
-	return f.Mode().IsDir()
-}
-
-func (f *FakeFile) Sys() interface{} {
-	return nil
-}
-
-// AssetFile implements http.File interface for a no-directory file with content
-type AssetFile struct {
-	*bytes.Reader
-	*asset
-}
-
-/*func NewAssetFile(name string, content []byte) *AssetFile {
-	return &AssetFile{
-		bytes.NewReader(content),
-		FakeFile{name, false, int64(len(content))},
+	if cf, ok := f.(*compressedFile); ok {
+		gr, err := gzip.NewReader(bytes.NewReader(cf.compressedContent))
+		if err != nil {
+			// This should never happen because we generate the gzip bytes such that they are always valid.
+			panic("unexpected error reading own gzip compressed bytes: " + err.Error())
+		}
+		return &compressedFileInstance{
+			compressedFile: cf,
+			gr:             gr,
+		}, nil
 	}
-}*/
 
-func (f *AssetFile) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, errors.New("not a directory")
+	return f.(http.File), nil
 }
 
-func (f *AssetFile) Stat() (os.FileInfo, error) {
-	return uncompressedFileInfo{f.asset.info}, nil
+// compressedFile is ...
+type compressedFile struct {
+	name              string
+	compressedContent []byte
+	uncompressedSize  int64
+	modTime           time.Time
 }
 
-func (f *AssetFile) GzipBytes() []byte {
-	log.Println("using GzipBytes for", f.asset.info.Name())
-	return f.asset.compressedBytes
+func (f *compressedFile) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, fmt.Errorf("cannot Readdir from file %s", f.name)
+}
+func (f *compressedFile) Stat() (os.FileInfo, error) { return f, nil }
+
+func (f *compressedFile) GzipBytes() []byte {
+	log.Println("using GzipBytes for", f.name)
+	return f.compressedContent
 }
 
-func (_ *AssetFile) Close() error { return nil }
+func (f *compressedFile) Name() string       { return f.name }
+func (f *compressedFile) Size() int64        { return f.uncompressedSize }
+func (f *compressedFile) Mode() os.FileMode  { return 0444 }
+func (f *compressedFile) ModTime() time.Time { return f.modTime }
+func (f *compressedFile) IsDir() bool        { return false }
+func (f *compressedFile) Sys() interface{}   { return nil }
 
-type AssetFileOld struct {
-	*bytes.Reader
-	FakeFile
+type compressedFileInstance struct {
+	*compressedFile
+	gr io.ReadCloser
 }
 
-func (f *AssetFileOld) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, errors.New("not a directory")
+func (f *compressedFileInstance) Read(p []byte) (n int, err error) {
+	return f.gr.Read(p)
+}
+func (f *compressedFileInstance) Seek(offset int64, whence int) (int64, error) {
+	panic("Seek not yet implemented")
+}
+func (f *compressedFileInstance) Close() error {
+	return f.gr.Close()
 }
 
-func (f *AssetFileOld) Stat() (os.FileInfo, error) {
-	return f, nil
+// dir is ...
+type dir struct {
+	name    string
+	entries []os.FileInfo
+	modTime time.Time
 }
 
-func (_ *AssetFileOld) Close() error {
-	return nil
+func (d *dir) Read([]byte) (int, error) {
+	return 0, fmt.Errorf("cannot Read from directory %s", d.name)
 }
-
-// AssetDirectory implements http.File interface for a directory
-type AssetDirectory struct {
-	name          string
-	io.ReadSeeker // TODO: nil so will panic.
-	childrenRead  int
-	children      []os.FileInfo
+func (d *dir) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("cannot Seek in directory %s", d.name)
 }
-
-func NewAssetDirectory(name string, children []string, fs *AssetFS) *AssetDirectory {
-	fileinfos := make([]os.FileInfo, 0, len(children))
-	for _, child := range children {
-		_, err := AssetDir(filepath.Join(name, child))
-		fileinfos = append(fileinfos, &FakeFile{child, err == nil, 0})
+func (d *dir) Close() error { return nil }
+func (d *dir) Readdir(count int) ([]os.FileInfo, error) {
+	if count != 0 {
+		log.Panicln("httpDir.Readdir count unsupported value:", count)
 	}
-	return &AssetDirectory{
-		/*AssetFileOld: AssetFileOld{
-			bytes.NewReader(nil),
-			FakeFile{Path: name, Dir: true, Len:0},
-		},*/
-		name:         name,
-		childrenRead: 0,
-		children:     fileinfos,
-	}
+	return d.entries, nil
 }
+func (d *dir) Stat() (os.FileInfo, error) { return d, nil }
 
-func (f *AssetDirectory) Readdir(count int) ([]os.FileInfo, error) {
-	if count <= 0 {
-		return f.children, nil
-	}
-	if f.childrenRead+count > len(f.children) {
-		count = len(f.children) - f.childrenRead
-	}
-	rv := f.children[f.childrenRead : f.childrenRead+count]
-	f.childrenRead += count
-	return rv, nil
-}
-
-func (f *AssetDirectory) Stat() (os.FileInfo, error) {
-	return &FakeFile{Path: f.name, Dir: true, Len: 0}, nil
-}
-
-func (_ *AssetDirectory) Close() error { return nil }
-
-// TODO: To be final output.
-//var AssetsFs = godocfs.New(&AssetFS{})
-var AssetsFs http.FileSystem = &AssetFS{}
-
-// AssetFS implements http.FileSystem, allowing
-// embedded files to be served from net/http package.
-type AssetFS struct{}
-
-func (fs *AssetFS) Open(name string) (http.File, error) {
-	if len(name) > 0 && name[0] == '/' {
-		name = name[1:]
-	}
-	if children, err := AssetDir(name); err == nil {
-		return NewAssetDirectory(name, children, fs), nil
-	}
-	a, err := Asset2(name)
-	if err != nil {
-		return nil, err
-	}
-	//return a, nil
-	return &AssetFile{
-		Reader: bytes.NewReader(a.bytes),
-		asset:  a,
-		//FakeFile: FakeFile{name, false, int64(len(a.bytes))},
-	}, nil
-}
+func (d *dir) Name() string       { return d.name }
+func (d *dir) Size() int64        { return 0 }
+func (d *dir) Mode() os.FileMode  { return 0755 | os.ModeDir }
+func (d *dir) ModTime() time.Time { return d.modTime }
+func (d *dir) IsDir() bool        { return true }
+func (d *dir) Sys() interface{}   { return nil }
 `)
 	return err
 }

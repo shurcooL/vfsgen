@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	pathpkg "path"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
@@ -24,7 +24,7 @@ func Translate(c *Config) error {
 	}
 
 	// Locate all the assets.
-	var toc []Asset
+	var toc []pathAsset
 	err = findFiles(c.Input, &toc)
 	if err != nil {
 		return err
@@ -76,43 +76,34 @@ func Translate(c *Config) error {
 	return nil
 }
 
-// TODO.
-//
-// Asset holds information about a single asset to be processed.
-type Asset struct {
-	Path string // Full file path.
-	Name string // Key used in TOC -- name by which asset is referenced.
-	Func string // Function name for the procedure returning the asset contents.
-}
-
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findFiles(fs http.FileSystem, toc *[]Asset) error {
+func findFiles(fs http.FileSystem, toc *[]pathAsset) error {
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %s: %v\n", path, err)
 			return nil
 		}
 
-		var asset Asset
-		asset.Path = path
-		asset.Name = path
+		switch {
+		case fi.IsDir():
+			*toc = append(*toc, pathAsset{
+				path: path,
+				asset: &dir{
+					name: pathpkg.Base(path),
+				},
+			})
 
-		if fi.IsDir() {
-			return nil
+		case !fi.IsDir():
+			*toc = append(*toc, pathAsset{
+				path: path,
+				asset: &compressedFile{
+					name:             pathpkg.Base(path),
+					uncompressedSize: fi.Size(),
+				},
+			})
 		}
-
-		// If we have a leading slash, get rid of it.
-		asset.Name = strings.TrimPrefix(asset.Name, "/")
-
-		// This shouldn't happen.
-		if len(asset.Name) == 0 {
-			return fmt.Errorf("Invalid file: %v", asset.Path)
-		}
-
-		//asset.Func = safeFunctionName(asset.Name, knownFuncs)
-		//*toc = append(*toc, asset)
 
 		return nil
 	}
@@ -125,25 +116,13 @@ func findFiles(fs http.FileSystem, toc *[]Asset) error {
 	return nil
 }
 
-// writeAssets writes the code file.
-func writeAssets(w io.Writer, c *Config, toc []Asset) error {
-	err := writeHeader(w, c)
-	if err != nil {
-		return err
-	}
-
-	for i := range toc {
-		err = writeAsset(w, c, &toc[i])
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+type pathAsset struct {
+	path  string
+	asset interface{}
 }
 
-// writeHeader writes output file headers.
-func writeHeader(w io.Writer, c *Config) error {
+// writeAssets writes the code file.
+func writeAssets(w io.Writer, c *Config, toc []pathAsset) error {
 	_, err := fmt.Fprint(w, `import (
 	"bytes"
 	"compress/gzip"
@@ -156,13 +135,67 @@ func writeHeader(w io.Writer, c *Config) error {
 )
 
 `)
-	return err
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(w, `var AssetsFs http.FileSystem = _assetFS
+
+type AssetFS map[string]interface{}
+
+var _assetFS = func() AssetFS {
+	_assetFS := AssetFS{
+`)
+	if err != nil {
+		return err
+	}
+
+	for _, pathAsset := range toc {
+		switch asset := pathAsset.asset.(type) {
+		case *dir:
+			_, err = fmt.Fprintf(w, "\t\t%q: &dir{\n", pathAsset.path)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
+			fmt.Fprintf(w, "\t\t\tmodTime: time.Time{},\n")
+			fmt.Fprintf(w, "\t\t},\n")
+		case *compressedFile:
+			_, err = fmt.Fprintf(w, "\t\t%q: &compressedFile{\n", pathAsset.path)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "\t\t\tname:              %q,\n", asset.name)
+			fmt.Fprintf(w, "\t\t\tcompressedContent: []byte(\"")
+			f, _ := c.Input.Open(pathAsset.path)
+			sw := &StringWriter{Writer: w}
+			gz := gzip.NewWriter(sw)
+			io.Copy(gz, f)
+			gz.Close()
+			f.Close()
+			fmt.Fprintf(w, "\"),\n")
+			fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
+			fmt.Fprintf(w, "\t\t\tmodTime:           time.Time{},\n")
+			fmt.Fprintf(w, "\t\t},\n")
+		}
+	}
+
+	_, err = fmt.Fprintf(w, `	}
+
+	return _assetFS
+}()
+`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// writeAsset write a entry for the given asset.
+/*// writeAsset write a entry for the given asset.
 // An entry is a function which embeds and returns
 // the file's byte content.
-func writeAsset(w io.Writer, c *Config, asset *Asset) error {
+func writeAsset(w io.Writer, c *Config, asset interface{}) error {
 	fd, err := c.Input.Open(asset.Path)
 	if err != nil {
 		return err
@@ -174,9 +207,16 @@ func writeAsset(w io.Writer, c *Config, asset *Asset) error {
 		return err
 	}
 	return writeAssetCommon(w, c, asset, compressedSize)
-}
 
-func writeCompressedAsset(w io.Writer, asset *Asset, r io.Reader) (int64, error) {
+	_, err = fmt.Fprintf(w, "\t\t%q: ...,\n", asset.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}*/
+
+/*func writeCompressedAsset(w io.Writer, asset *Asset, r io.Reader) (int64, error) {
 	_, err := fmt.Fprintf(w, `var _%s = "`, asset.Func)
 	if err != nil {
 		return 0, err
@@ -235,7 +275,7 @@ func writeAssetCommon(w io.Writer, c *Config, asset *Asset, compressedSize int64
 
 `, asset.Func, asset.Func, asset.Func, asset.Name, fi.Size(), compressedSize, uint32(fi.Mode()), fi.ModTime().Unix())
 	return err
-}
+}*/
 
 func writeVFS(w io.Writer) error {
 	_, err := fmt.Fprint(w, `

@@ -180,11 +180,11 @@ var AssetsFS http.FileSystem = func() assetsFS {
 				return err
 			}
 			fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
-			modTimeBytes, err := asset.modTime.MarshalBinary()
+			modTimeBytes, err := asset.modTime.MarshalText()
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalBinaryTime(%#v),\n", modTimeBytes)
+			fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 			fmt.Fprintf(w, "\t\t},\n")
 		case *compressedFile:
 			_, err = fmt.Fprintf(w, "\t\t%q: &compressedFile{\n", pathAsset.path)
@@ -201,11 +201,11 @@ var AssetsFS http.FileSystem = func() assetsFS {
 			f.Close()
 			fmt.Fprintf(w, "\"),\n")
 			fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
-			modTimeBytes, err := asset.modTime.MarshalBinary()
+			modTimeBytes, err := asset.modTime.MarshalText()
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalBinaryTime(%#v),\n", modTimeBytes)
+			fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 			fmt.Fprintf(w, "\t\t},\n")
 		}
 	}
@@ -257,9 +257,9 @@ func (fs assetsFS) Open(path string) (http.File, error) {
 	return f.(http.File), nil
 }
 
-func mustUnmarshalBinaryTime(b []byte) time.Time {
+func mustUnmarshalTextTime(text string) time.Time {
 	var t time.Time
-	err := t.UnmarshalBinary(b)
+	err := t.UnmarshalText([]byte(text))
 	if err != nil {
 		panic(err)
 	}

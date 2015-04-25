@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	pathpkg "path"
+	"sort"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
@@ -76,6 +77,21 @@ func Translate(c *Config) error {
 	return nil
 }
 
+// readDirPaths reads the directory named by dirname and returns
+// a sorted list of directory paths.
+func readDirPaths(fs http.FileSystem, dirname string) ([]string, error) {
+	fis, err := vfsutil.ReadDir(fs, dirname)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, len(fis))
+	for i := range fis {
+		paths[i] = pathpkg.Join(dirname, fis[i].Name())
+	}
+	sort.Strings(paths)
+	return paths, nil
+}
+
 // findFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
@@ -88,10 +104,16 @@ func findFiles(fs http.FileSystem, toc *[]pathAsset) error {
 
 		switch {
 		case fi.IsDir():
+			entries, err := readDirPaths(fs, path)
+			if err != nil {
+				return err
+			}
+
 			*toc = append(*toc, pathAsset{
 				path: path,
 				asset: &dir{
-					name: pathpkg.Base(path),
+					name:    pathpkg.Base(path),
+					entries: entries,
 				},
 			})
 
@@ -180,11 +202,23 @@ var _assetFS = func() AssetFS {
 		}
 	}
 
-	_, err = fmt.Fprintf(w, `	}
+	_, err = fmt.Fprintf(w, "\t}\n\n")
+	if err != nil {
+		return err
+	}
 
-	return _assetFS
-}()
-`)
+	for _, pathAsset := range toc {
+		switch asset := pathAsset.asset.(type) {
+		case *dir:
+			fmt.Fprintf(w, "\t_assetFS[%q].(*dir).entries = []os.FileInfo{\n", pathAsset.path)
+			for _, entry := range asset.entries {
+				fmt.Fprintf(w, "\t\t_assetFS[%q].(os.FileInfo),\n", entry)
+			}
+			fmt.Fprintf(w, "\t}\n")
+		}
+	}
+
+	_, err = fmt.Fprintf(w, "\n\treturn _assetFS\n}()\n")
 	if err != nil {
 		return err
 	}

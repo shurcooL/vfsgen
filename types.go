@@ -1,9 +1,6 @@
 package vfsgen
 
-import (
-	"os"
-	"time"
-)
+import "time"
 
 // compressedFile is ...
 type compressedFile struct {
@@ -15,7 +12,8 @@ type compressedFile struct {
 
 // dir is ...
 type dir struct {
-	name    string
-	entries []os.FileInfo
+	name string
+	//entries []os.FileInfo
+	entries []string
 	modTime time.Time
 }

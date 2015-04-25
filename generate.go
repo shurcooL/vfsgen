@@ -14,10 +14,10 @@ import (
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
-// Translate reads assets from an input directory, converts them
+// Generate reads assets from an input directory, converts them
 // to Go code and writes new files to the output specified
 // in the given configuration.
-func Translate(c *Config) error {
+func Generate(c *Config) error {
 	// Ensure our configuration has sane values.
 	err := c.validate()
 	if err != nil {
@@ -165,7 +165,7 @@ func writeAssets(w io.Writer, c *Config, toc []pathAsset) error {
 
 	_, err = fmt.Fprintf(w, `type assetsFS map[string]interface{}
 
-var AssetsFS http.FileSystem = func() assetsFS {
+var AssetsFS = func() http.FileSystem {
 	assetsFS := assetsFS{
 `)
 	if err != nil {

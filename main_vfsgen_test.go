@@ -15,7 +15,7 @@ import (
 
 type assetsFS map[string]interface{}
 
-var AssetsFS http.FileSystem = func() assetsFS {
+var AssetsFS = func() http.FileSystem {
 	assetsFS := assetsFS{
 		"/": &dir{
 			name:    "/",

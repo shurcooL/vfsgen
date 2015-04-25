@@ -20,12 +20,12 @@ func main() {
 		"folderB/folderC/file3.txt":      "Stuff.",
 	}))
 
-	cfg := vfsgen.NewConfig()
-	cfg.Input = fs
-	cfg.Package = "vfsgen_test"
-	cfg.Output = "./main_vfsgen_test.go"
+	config := vfsgen.NewConfig()
+	config.Input = fs
+	config.Package = "vfsgen_test"
+	config.Output = "./main_vfsgen_test.go"
 
-	err := vfsgen.Translate(cfg)
+	err := vfsgen.Generate(config)
 	if err != nil {
 		log.Fatalln(err)
 	}

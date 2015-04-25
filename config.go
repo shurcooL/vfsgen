@@ -38,7 +38,7 @@ type Config struct {
 	Output string
 
 	// OutputName defines the output filesystem variable name.
-	// If left empty, this defaults to "AssetsFs".
+	// If left empty, this defaults to "AssetsFS".
 	//OutputName string
 }
 

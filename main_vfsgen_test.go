@@ -13,12 +13,10 @@ import (
 	"time"
 )
 
-var AssetsFs http.FileSystem = _assetFS
+type assetsFS map[string]interface{}
 
-type AssetFS map[string]interface{}
-
-var _assetFS = func() AssetFS {
-	_assetFS := AssetFS{
+var AssetsFS http.FileSystem = func() assetsFS {
+	assetsFS := assetsFS{
 		"/": &dir{
 			name:    "/",
 			modTime: time.Time{},
@@ -67,27 +65,27 @@ var _assetFS = func() AssetFS {
 		},
 	}
 
-	_assetFS["/"].(*dir).entries = []os.FileInfo{
-		_assetFS["/folderA"].(os.FileInfo),
-		_assetFS["/folderB"].(os.FileInfo),
-		_assetFS["/not-worth-compressing-file.txt"].(os.FileInfo),
-		_assetFS["/sample-file.txt"].(os.FileInfo),
+	assetsFS["/"].(*dir).entries = []os.FileInfo{
+		assetsFS["/folderA"].(os.FileInfo),
+		assetsFS["/folderB"].(os.FileInfo),
+		assetsFS["/not-worth-compressing-file.txt"].(os.FileInfo),
+		assetsFS["/sample-file.txt"].(os.FileInfo),
 	}
-	_assetFS["/folderA"].(*dir).entries = []os.FileInfo{
-		_assetFS["/folderA/file1.txt"].(os.FileInfo),
-		_assetFS["/folderA/file2.txt"].(os.FileInfo),
+	assetsFS["/folderA"].(*dir).entries = []os.FileInfo{
+		assetsFS["/folderA/file1.txt"].(os.FileInfo),
+		assetsFS["/folderA/file2.txt"].(os.FileInfo),
 	}
-	_assetFS["/folderB"].(*dir).entries = []os.FileInfo{
-		_assetFS["/folderB/folderC"].(os.FileInfo),
+	assetsFS["/folderB"].(*dir).entries = []os.FileInfo{
+		assetsFS["/folderB/folderC"].(os.FileInfo),
 	}
-	_assetFS["/folderB/folderC"].(*dir).entries = []os.FileInfo{
-		_assetFS["/folderB/folderC/file3.txt"].(os.FileInfo),
+	assetsFS["/folderB/folderC"].(*dir).entries = []os.FileInfo{
+		assetsFS["/folderB/folderC/file3.txt"].(os.FileInfo),
 	}
 
-	return _assetFS
+	return assetsFS
 }()
 
-func (fs AssetFS) Open(path string) (http.File, error) {
+func (fs assetsFS) Open(path string) (http.File, error) {
 	f, ok := fs[path]
 	if !ok {
 		return nil, os.ErrNotExist

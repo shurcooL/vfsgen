@@ -14,7 +14,7 @@ import (
 //go:generate go run main_test_generate.go
 
 func Example() {
-	var fs http.FileSystem = AssetsFs
+	var fs http.FileSystem = AssetsFS
 
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -60,7 +60,7 @@ type gzipByter interface {
 
 func ExampleCompressed() {
 	// Compressed file system.
-	var fs http.FileSystem = AssetsFs
+	var fs http.FileSystem = AssetsFS
 
 	walkFn := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -120,7 +120,7 @@ func ExampleCompressed() {
 }
 
 func ExampleReadTwoOpenedFiles() {
-	var fs http.FileSystem = AssetsFs
+	var fs http.FileSystem = AssetsFS
 
 	f0, err := fs.Open("/sample-file.txt")
 	if err != nil {

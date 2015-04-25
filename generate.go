@@ -161,12 +161,10 @@ func writeAssets(w io.Writer, c *Config, toc []pathAsset) error {
 		return err
 	}
 
-	_, err = fmt.Fprintf(w, `var AssetsFs http.FileSystem = _assetFS
+	_, err = fmt.Fprintf(w, `type assetsFS map[string]interface{}
 
-type AssetFS map[string]interface{}
-
-var _assetFS = func() AssetFS {
-	_assetFS := AssetFS{
+var AssetsFS http.FileSystem = func() assetsFS {
+	assetsFS := assetsFS{
 `)
 	if err != nil {
 		return err
@@ -210,15 +208,15 @@ var _assetFS = func() AssetFS {
 	for _, pathAsset := range toc {
 		switch asset := pathAsset.asset.(type) {
 		case *dir:
-			fmt.Fprintf(w, "\t_assetFS[%q].(*dir).entries = []os.FileInfo{\n", pathAsset.path)
+			fmt.Fprintf(w, "\tassetsFS[%q].(*dir).entries = []os.FileInfo{\n", pathAsset.path)
 			for _, entry := range asset.entries {
-				fmt.Fprintf(w, "\t\t_assetFS[%q].(os.FileInfo),\n", entry)
+				fmt.Fprintf(w, "\t\tassetsFS[%q].(os.FileInfo),\n", entry)
 			}
 			fmt.Fprintf(w, "\t}\n")
 		}
 	}
 
-	_, err = fmt.Fprintf(w, "\n\treturn _assetFS\n}()\n")
+	_, err = fmt.Fprintf(w, "\n\treturn assetsFS\n}()\n")
 	if err != nil {
 		return err
 	}
@@ -313,7 +311,7 @@ func writeAssetCommon(w io.Writer, c *Config, asset *Asset, compressedSize int64
 
 func writeVFS(w io.Writer) error {
 	_, err := fmt.Fprint(w, `
-func (fs AssetFS) Open(path string) (http.File, error) {
+func (fs assetsFS) Open(path string) (http.File, error) {
 	f, ok := fs[path]
 	if !ok {
 		return nil, os.ErrNotExist

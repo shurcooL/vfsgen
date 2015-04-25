@@ -19,49 +19,49 @@ var AssetsFS http.FileSystem = func() assetsFS {
 	assetsFS := assetsFS{
 		"/": &dir{
 			name:    "/",
-			modTime: time.Time{},
+			modTime: mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/folderA": &dir{
 			name:    "folderA",
-			modTime: time.Time{},
+			modTime: mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/folderA/file1.txt": &compressedFile{
 			name:              "file1.txt",
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
 			uncompressedSize:  6,
-			modTime:           time.Time{},
+			modTime:           mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/folderA/file2.txt": &compressedFile{
 			name:              "file2.txt",
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
 			uncompressedSize:  6,
-			modTime:           time.Time{},
+			modTime:           mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/folderB": &dir{
 			name:    "folderB",
-			modTime: time.Time{},
+			modTime: mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/folderB/folderC": &dir{
 			name:    "folderC",
-			modTime: time.Time{},
+			modTime: mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/folderB/folderC/file3.txt": &compressedFile{
 			name:              "file3.txt",
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
 			uncompressedSize:  6,
-			modTime:           time.Time{},
+			modTime:           mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/not-worth-compressing-file.txt": &compressedFile{
 			name:              "not-worth-compressing-file.txt",
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"),
 			uncompressedSize:  29,
-			modTime:           time.Time{},
+			modTime:           mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 		"/sample-file.txt": &compressedFile{
 			name:              "sample-file.txt",
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x0f\x10\x00\x00\xff\xff\x76\x5a\x3e\xaa\xbd\x00\x00\x00"),
 			uncompressedSize:  189,
-			modTime:           time.Time{},
+			modTime:           mustUnmarshalBinaryTime([]byte{0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff}),
 		},
 	}
 
@@ -104,6 +104,15 @@ func (fs assetsFS) Open(path string) (http.File, error) {
 	}
 
 	return f.(http.File), nil
+}
+
+func mustUnmarshalBinaryTime(b []byte) time.Time {
+	var t time.Time
+	err := t.UnmarshalBinary(b)
+	if err != nil {
+		panic(err)
+	}
+	return t
 }
 
 // compressedFile is ...

@@ -114,6 +114,7 @@ func findFiles(fs http.FileSystem, toc *[]pathAsset) error {
 				asset: &dir{
 					name:    pathpkg.Base(path),
 					entries: entries,
+					modTime: fi.ModTime(),
 				},
 			})
 
@@ -123,6 +124,7 @@ func findFiles(fs http.FileSystem, toc *[]pathAsset) error {
 				asset: &compressedFile{
 					name:             pathpkg.Base(path),
 					uncompressedSize: fi.Size(),
+					modTime:          fi.ModTime(),
 				},
 			})
 		}
@@ -178,7 +180,11 @@ var AssetsFS http.FileSystem = func() assetsFS {
 				return err
 			}
 			fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
-			fmt.Fprintf(w, "\t\t\tmodTime: time.Time{},\n")
+			modTimeBytes, err := asset.modTime.MarshalBinary()
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalBinaryTime(%#v),\n", modTimeBytes)
 			fmt.Fprintf(w, "\t\t},\n")
 		case *compressedFile:
 			_, err = fmt.Fprintf(w, "\t\t%q: &compressedFile{\n", pathAsset.path)
@@ -195,7 +201,11 @@ var AssetsFS http.FileSystem = func() assetsFS {
 			f.Close()
 			fmt.Fprintf(w, "\"),\n")
 			fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
-			fmt.Fprintf(w, "\t\t\tmodTime:           time.Time{},\n")
+			modTimeBytes, err := asset.modTime.MarshalBinary()
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalBinaryTime(%#v),\n", modTimeBytes)
 			fmt.Fprintf(w, "\t\t},\n")
 		}
 	}
@@ -224,91 +234,6 @@ var AssetsFS http.FileSystem = func() assetsFS {
 	return nil
 }
 
-/*// writeAsset write a entry for the given asset.
-// An entry is a function which embeds and returns
-// the file's byte content.
-func writeAsset(w io.Writer, c *Config, asset interface{}) error {
-	fd, err := c.Input.Open(asset.Path)
-	if err != nil {
-		return err
-	}
-	defer fd.Close()
-
-	compressedSize, err := writeCompressedAsset(w, asset, fd)
-	if err != nil {
-		return err
-	}
-	return writeAssetCommon(w, c, asset, compressedSize)
-
-	_, err = fmt.Fprintf(w, "\t\t%q: ...,\n", asset.Name)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}*/
-
-/*func writeCompressedAsset(w io.Writer, asset *Asset, r io.Reader) (int64, error) {
-	_, err := fmt.Fprintf(w, `var _%s = "`, asset.Func)
-	if err != nil {
-		return 0, err
-	}
-
-	sw := &StringWriter{Writer: w}
-	gz := gzip.NewWriter(sw)
-	_, err = io.Copy(gz, r)
-	gz.Close()
-
-	if err != nil {
-		return 0, err
-	}
-
-	_, err = fmt.Fprintf(w, `"
-
-func %s_bytes() ([]byte, error) {
-	return bindata_read(
-		_%s,
-		%q,
-	)
-}
-
-func %s_bytes_compressed() ([]byte, error) {
-	return bindata_read_compressed(
-		_%s,
-		%q,
-	)
-}
-
-`, asset.Func, asset.Func, asset.Name, asset.Func, asset.Func, asset.Name)
-	return sw.c, err
-}
-
-func writeAssetCommon(w io.Writer, c *Config, asset *Asset, compressedSize int64) error {
-	fi, err := vfsutil.Stat(c.Input, asset.Path)
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintf(w, `func %s() (*asset, error) {
-	bytes, err := %s_bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	compressedBytes, err := %s_bytes_compressed()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindata_file_info{name: %q, uncompressedSize: %d, compressedSize: %d, mode: os.FileMode(%d), modTime: time.Unix(%d, 0)}
-	a := &asset{bytes: bytes, compressedBytes: compressedBytes, info: info}
-	return a, nil
-}
-
-`, asset.Func, asset.Func, asset.Func, asset.Name, fi.Size(), compressedSize, uint32(fi.Mode()), fi.ModTime().Unix())
-	return err
-}*/
-
 func writeVFS(w io.Writer) error {
 	_, err := fmt.Fprint(w, `
 func (fs assetsFS) Open(path string) (http.File, error) {
@@ -330,6 +255,15 @@ func (fs assetsFS) Open(path string) (http.File, error) {
 	}
 
 	return f.(http.File), nil
+}
+
+func mustUnmarshalBinaryTime(b []byte) time.Time {
+	var t time.Time
+	err := t.UnmarshalBinary(b)
+	if err != nil {
+		panic(err)
+	}
+	return t
 }
 
 // compressedFile is ...

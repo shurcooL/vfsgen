@@ -145,3 +145,23 @@ func ExampleReadTwoOpenedFiles() {
 	// Output:
 	// This fileThis file
 }
+
+func ExampleModTime() {
+	var fs http.FileSystem = AssetsFS
+
+	f, err := fs.Open("/sample-file.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(fi.ModTime())
+
+	// Output:
+	// 0001-01-01 00:00:00 +0000 UTC
+}

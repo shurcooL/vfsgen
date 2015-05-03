@@ -51,7 +51,7 @@ func Example() {
 	// /not-worth-compressing-file.txt
 	// "Its normal contents are here." <nil>
 	// /sample-file.txt
-	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah." <nil>
+	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah!" <nil>
 }
 
 type gzipByter interface {
@@ -115,8 +115,8 @@ func ExampleCompressed() {
 	// "Its normal contents are here." <nil>
 	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\xf2,)V\xc8\xcb/\xcaM\xccQH\xce\xcf+I\xcd\x03\xf2\x13\x8bR\x152R\x8bR\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"
 	// /sample-file.txt
-	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah." <nil>
-	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x0f\x10\x00\x00\xff\xffvZ>\xaa\xbd\x00\x00\x00"
+	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah!" <nil>
+	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x11\x10\x00\x00\xff\xff\xe7G\x81:\xbd\x00\x00\x00"
 }
 
 func ExampleReadTwoOpenedFiles() {
@@ -164,4 +164,51 @@ func ExampleModTime() {
 
 	// Output:
 	// 0001-01-01 00:00:00 +0000 UTC
+}
+
+func ExampleSeek() {
+	var fs http.FileSystem = AssetsFS
+
+	f, err := fs.Open("/sample-file.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	_, err = io.CopyN(os.Stdout, f, 5)
+	if err != nil {
+		panic(err)
+	}
+	_, err = f.Seek(22, os.SEEK_CUR)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.CopyN(os.Stdout, f, 10)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print("...")
+	_, err = f.Seek(-4, os.SEEK_END)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.Copy(os.Stdout, f)
+	if err != nil {
+		panic(err)
+	}
+	_, err = f.Seek(3, os.SEEK_SET)
+	if err != nil {
+		panic(err)
+	}
+	_, err = f.Seek(1, os.SEEK_CUR)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.CopyN(os.Stdout, f, 22)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// This Blaaaaaaaa...aah! file compresses well.
 }

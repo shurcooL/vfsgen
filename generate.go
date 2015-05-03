@@ -293,14 +293,43 @@ func (f *compressedFile) Sys() interface{}   { return nil }
 
 type compressedFileInstance struct {
 	*compressedFile
-	gr io.ReadCloser
+	gr      *gzip.Reader
+	grPos   int64 // Actual gr uncompressed position.
+	seekPos int64 // Seek uncompressed position.
 }
 
 func (f *compressedFileInstance) Read(p []byte) (n int, err error) {
-	return f.gr.Read(p)
+	if f.grPos > f.seekPos {
+		// Rewind to beginning.
+		err = f.gr.Reset(bytes.NewReader(f.compressedFile.compressedContent))
+		if err != nil {
+			return 0, err
+		}
+		f.grPos = 0
+	}
+	if f.grPos < f.seekPos {
+		// Fast-forward.
+		_, err = io.ReadFull(f.gr, make([]byte, f.seekPos-f.grPos))
+		if err != nil {
+			return 0, err
+		}
+		f.grPos = f.seekPos
+	}
+	n, err = f.gr.Read(p)
+	f.grPos += int64(n)
+	f.seekPos += int64(n)
+	return n, err
 }
 func (f *compressedFileInstance) Seek(offset int64, whence int) (int64, error) {
-	panic("Seek not yet implemented")
+	switch whence {
+	case os.SEEK_SET:
+		f.seekPos = 0 + offset
+	case os.SEEK_CUR:
+		f.seekPos += offset
+	case os.SEEK_END:
+		f.seekPos = f.compressedFile.uncompressedSize + offset
+	}
+	return f.seekPos, nil
 }
 func (f *compressedFileInstance) Close() error {
 	return f.gr.Close()

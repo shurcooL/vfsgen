@@ -59,7 +59,7 @@ var AssetsFS = func() http.FileSystem {
 		},
 		"/sample-file.txt": &compressedFile{
 			name:              "sample-file.txt",
-			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x0f\x10\x00\x00\xff\xff\x76\x5a\x3e\xaa\xbd\x00\x00\x00"),
+			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x11\x10\x00\x00\xff\xff\xe7\x47\x81\x3a\xbd\x00\x00\x00"),
 			uncompressedSize:  189,
 			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
@@ -142,14 +142,43 @@ func (f *compressedFile) Sys() interface{}   { return nil }
 
 type compressedFileInstance struct {
 	*compressedFile
-	gr io.ReadCloser
+	gr      *gzip.Reader
+	grPos   int64 // Actual gr uncompressed position.
+	seekPos int64 // Seek uncompressed position.
 }
 
 func (f *compressedFileInstance) Read(p []byte) (n int, err error) {
-	return f.gr.Read(p)
+	if f.grPos > f.seekPos {
+		// Rewind to beginning.
+		err = f.gr.Reset(bytes.NewReader(f.compressedFile.compressedContent))
+		if err != nil {
+			return 0, err
+		}
+		f.grPos = 0
+	}
+	if f.grPos < f.seekPos {
+		// Fast-forward.
+		_, err = io.ReadFull(f.gr, make([]byte, f.seekPos-f.grPos))
+		if err != nil {
+			return 0, err
+		}
+		f.grPos = f.seekPos
+	}
+	n, err = f.gr.Read(p)
+	f.grPos += int64(n)
+	f.seekPos += int64(n)
+	return n, err
 }
 func (f *compressedFileInstance) Seek(offset int64, whence int) (int64, error) {
-	panic("Seek not yet implemented")
+	switch whence {
+	case os.SEEK_SET:
+		f.seekPos = 0 + offset
+	case os.SEEK_CUR:
+		f.seekPos += offset
+	case os.SEEK_END:
+		f.seekPos = f.compressedFile.uncompressedSize + offset
+	}
+	return f.seekPos, nil
 }
 func (f *compressedFileInstance) Close() error {
 	return f.gr.Close()

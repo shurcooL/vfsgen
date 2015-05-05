@@ -9,22 +9,21 @@ import (
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
-// NewConfig returns a default configuration struct.
-func NewConfig() *Config {
-	return &Config{
-		Package: "main",
-		Output:  "./vfsdata.go",
-		//OutputName: "AssetsFs",
-	}
-}
-
 // Config defines a set of options for the asset conversion.
 type Config struct {
 	// Input is the filesystem that contains input assets to be converted.
 	Input http.FileSystem
 
-	// Name of the package to use. Defaults to 'main'.
-	Package string
+	// THINKING:
+	// Input
+	// OutputFile
+	// OutputPackageTags
+	// OutputPackageName
+	// OutputVariableName
+
+	// Output defines the output file for the generated code.
+	// If left empty, this defaults to "./vfsdata.go".
+	Output string
 
 	// Tags specify a set of optional build tags, which should be
 	// included in the generated output. The tags are appended to a
@@ -32,21 +31,19 @@ type Config struct {
 	// and must follow the build tags syntax specified by the go tool.
 	Tags string
 
-	// Output defines the output file for the generated code.
-	// If left empty, this defaults to "vfsdata.go" in the current
-	// working directory.
-	Output string
+	// Name of the package to use. Defaults to 'main'.
+	Package string
 
 	// OutputName defines the output filesystem variable name.
-	// If left empty, this defaults to "AssetsFS".
-	//OutputName string
+	// If left empty, this defaults to "assets".
+	OutputName string
 }
 
 // validate ensures the config has sane values.
 // Part of which means checking if certain file/directory paths exist.
 func (c *Config) validate() error {
-	if len(c.Package) == 0 {
-		return fmt.Errorf("Missing package name")
+	if c.Package == "" {
+		c.Package = "main"
 	}
 
 	_, err := vfsutil.Stat(c.Input, "/")
@@ -54,13 +51,12 @@ func (c *Config) validate() error {
 		return fmt.Errorf("Failed to stat input root: %v", err)
 	}
 
-	if len(c.Output) == 0 {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("Unable to determine current working directory.")
-		}
+	if c.Output == "" {
+		c.Output = "./vfsdata.go"
+	}
 
-		c.Output = filepath.Join(cwd, "vfsdata.go")
+	if c.OutputName == "" {
+		c.OutputName = "assets"
 	}
 
 	switch stat, err := os.Lstat(c.Output); {

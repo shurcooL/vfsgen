@@ -17,7 +17,7 @@ import (
 // Generate reads assets from an input directory, converts them
 // to Go code and writes new files to the output specified
 // in the given configuration.
-func Generate(c *Config) error {
+func Generate(c Config) error {
 	// Ensure our configuration has sane values.
 	err := c.validate()
 	if err != nil {
@@ -146,7 +146,7 @@ type pathAsset struct {
 }
 
 // writeAssets writes the code file.
-func writeAssets(w io.Writer, c *Config, toc []pathAsset) error {
+func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 	_, err := fmt.Fprint(w, `import (
 	"bytes"
 	"compress/gzip"
@@ -165,9 +165,9 @@ func writeAssets(w io.Writer, c *Config, toc []pathAsset) error {
 
 	_, err = fmt.Fprintf(w, `type assetsFS map[string]interface{}
 
-var AssetsFS = func() http.FileSystem {
-	assetsFS := assetsFS{
-`)
+var %s = func() http.FileSystem {
+	fs := assetsFS{
+`, c.OutputName)
 	if err != nil {
 		return err
 	}
@@ -220,18 +220,18 @@ var AssetsFS = func() http.FileSystem {
 		case *dir:
 			switch len(asset.entries) {
 			case 0:
-				fmt.Fprintf(w, "\tassetsFS[%q].(*dir).entries = []os.FileInfo{} // Not nil.\n", pathAsset.path)
+				fmt.Fprintf(w, "\tfs[%q].(*dir).entries = []os.FileInfo{} // Not nil.\n", pathAsset.path)
 			default:
-				fmt.Fprintf(w, "\tassetsFS[%q].(*dir).entries = []os.FileInfo{\n", pathAsset.path)
+				fmt.Fprintf(w, "\tfs[%q].(*dir).entries = []os.FileInfo{\n", pathAsset.path)
 				for _, entry := range asset.entries {
-					fmt.Fprintf(w, "\t\tassetsFS[%q].(os.FileInfo),\n", entry)
+					fmt.Fprintf(w, "\t\tfs[%q].(os.FileInfo),\n", entry)
 				}
 				fmt.Fprintf(w, "\t}\n")
 			}
 		}
 	}
 
-	_, err = fmt.Fprintf(w, "\n\treturn assetsFS\n}()\n")
+	_, err = fmt.Fprintf(w, "\n\treturn fs\n}()\n")
 	if err != nil {
 		return err
 	}

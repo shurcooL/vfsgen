@@ -25,7 +25,7 @@ func main() {
 	config := vfsgen.Config{
 		Input:   fs,
 		Package: "vfsgen_test",
-		Output:  "./main_vfsgen_test.go",
+		Output:  "./main_vfsdata_test.go",
 	}
 
 	err := vfsgen.Generate(config)

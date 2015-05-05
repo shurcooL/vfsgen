@@ -164,7 +164,7 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 	}
 
 	_, err = fmt.Fprintf(w, `var %s = func() http.FileSystem {
-	fs := assetsFS{
+	fs := _vfsgen_fs{
 `, c.OutputName)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 	for _, pathAsset := range toc {
 		switch asset := pathAsset.asset.(type) {
 		case *dir:
-			_, err = fmt.Fprintf(w, "\t\t%q: &dir{\n", pathAsset.path)
+			_, err = fmt.Fprintf(w, "\t\t%q: &_vfsgen_dir{\n", pathAsset.path)
 			if err != nil {
 				return err
 			}
@@ -185,7 +185,7 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 			fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 			fmt.Fprintf(w, "\t\t},\n")
 		case *compressedFile:
-			_, err = fmt.Fprintf(w, "\t\t%q: &compressedFile{\n", pathAsset.path)
+			_, err = fmt.Fprintf(w, "\t\t%q: &_vfsgen_compressedFile{\n", pathAsset.path)
 			if err != nil {
 				return err
 			}
@@ -218,9 +218,9 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 		case *dir:
 			switch len(asset.entries) {
 			case 0:
-				fmt.Fprintf(w, "\tfs[%q].(*dir).entries = []os.FileInfo{} // Not nil.\n", pathAsset.path)
+				fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dir).entries = []os.FileInfo{} // Not nil.\n", pathAsset.path)
 			default:
-				fmt.Fprintf(w, "\tfs[%q].(*dir).entries = []os.FileInfo{\n", pathAsset.path)
+				fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dir).entries = []os.FileInfo{\n", pathAsset.path)
 				for _, entry := range asset.entries {
 					fmt.Fprintf(w, "\t\tfs[%q].(os.FileInfo),\n", entry)
 				}
@@ -239,31 +239,33 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 
 func writeVFS(w io.Writer) error {
 	_, err := fmt.Fprint(w, `
-type assetsFS map[string]interface{}
+type _vfsgen_fs map[string]interface{}
 
-func (fs assetsFS) Open(path string) (http.File, error) {
+func (fs _vfsgen_fs) Open(path string) (http.File, error) {
+	// TODO: Maybe clean path?
 	f, ok := fs[path]
 	if !ok {
 		return nil, os.ErrNotExist
 	}
 
 	switch f := f.(type) {
-	case *compressedFile:
+	case *_vfsgen_compressedFile:
 		gr, err := gzip.NewReader(bytes.NewReader(f.compressedContent))
 		if err != nil {
 			// This should never happen because we generate the gzip bytes such that they are always valid.
 			panic("unexpected error reading own gzip compressed bytes: " + err.Error())
 		}
-		return &compressedFileInstance{
-			compressedFile: f,
-			gr:             gr,
+		return &_vfsgen_compressedFileInstance{
+			_vfsgen_compressedFile: f,
+			gr: gr,
 		}, nil
-	case *dir:
-		return &dirInstance{
-			dir: f,
+	case *_vfsgen_dir:
+		return &_vfsgen_dirInstance{
+			_vfsgen_dir: f,
 		}, nil
 	default:
-		return f.(http.File), nil
+		// This should never happen because we generate only the above types.
+		panic(fmt.Sprintf("unexpected type %T", f))
 	}
 }
 
@@ -276,42 +278,43 @@ func mustUnmarshalTextTime(text string) time.Time {
 	return t
 }
 
-// compressedFile is ...
-type compressedFile struct {
+// _vfsgen_compressedFile is a static definition of a gzip compressed file.
+type _vfsgen_compressedFile struct {
 	name              string
 	compressedContent []byte
 	uncompressedSize  int64
 	modTime           time.Time
 }
 
-func (f *compressedFile) Readdir(count int) ([]os.FileInfo, error) {
+func (f *_vfsgen_compressedFile) Readdir(count int) ([]os.FileInfo, error) {
 	return nil, fmt.Errorf("cannot Readdir from file %s", f.name)
 }
-func (f *compressedFile) Stat() (os.FileInfo, error) { return f, nil }
+func (f *_vfsgen_compressedFile) Stat() (os.FileInfo, error) { return f, nil }
 
-func (f *compressedFile) GzipBytes() []byte {
+func (f *_vfsgen_compressedFile) GzipBytes() []byte {
 	log.Println("using GzipBytes for", f.name)
 	return f.compressedContent
 }
 
-func (f *compressedFile) Name() string       { return f.name }
-func (f *compressedFile) Size() int64        { return f.uncompressedSize }
-func (f *compressedFile) Mode() os.FileMode  { return 0444 }
-func (f *compressedFile) ModTime() time.Time { return f.modTime }
-func (f *compressedFile) IsDir() bool        { return false }
-func (f *compressedFile) Sys() interface{}   { return nil }
+func (f *_vfsgen_compressedFile) Name() string       { return f.name }
+func (f *_vfsgen_compressedFile) Size() int64        { return f.uncompressedSize }
+func (f *_vfsgen_compressedFile) Mode() os.FileMode  { return 0444 }
+func (f *_vfsgen_compressedFile) ModTime() time.Time { return f.modTime }
+func (f *_vfsgen_compressedFile) IsDir() bool        { return false }
+func (f *_vfsgen_compressedFile) Sys() interface{}   { return nil }
 
-type compressedFileInstance struct {
-	*compressedFile
+// _vfsgen_dirInstance is an opened compressedFile instance.
+type _vfsgen_compressedFileInstance struct {
+	*_vfsgen_compressedFile
 	gr      *gzip.Reader
 	grPos   int64 // Actual gr uncompressed position.
 	seekPos int64 // Seek uncompressed position.
 }
 
-func (f *compressedFileInstance) Read(p []byte) (n int, err error) {
+func (f *_vfsgen_compressedFileInstance) Read(p []byte) (n int, err error) {
 	if f.grPos > f.seekPos {
 		// Rewind to beginning.
-		err = f.gr.Reset(bytes.NewReader(f.compressedFile.compressedContent))
+		err = f.gr.Reset(bytes.NewReader(f._vfsgen_compressedFile.compressedContent))
 		if err != nil {
 			return 0, err
 		}
@@ -330,58 +333,58 @@ func (f *compressedFileInstance) Read(p []byte) (n int, err error) {
 	f.seekPos += int64(n)
 	return n, err
 }
-func (f *compressedFileInstance) Seek(offset int64, whence int) (int64, error) {
+func (f *_vfsgen_compressedFileInstance) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case os.SEEK_SET:
 		f.seekPos = 0 + offset
 	case os.SEEK_CUR:
 		f.seekPos += offset
 	case os.SEEK_END:
-		f.seekPos = f.compressedFile.uncompressedSize + offset
+		f.seekPos = f._vfsgen_compressedFile.uncompressedSize + offset
 	}
 	return f.seekPos, nil
 }
-func (f *compressedFileInstance) Close() error {
+func (f *_vfsgen_compressedFileInstance) Close() error {
 	return f.gr.Close()
 }
 
-// dir is ...
-type dir struct {
+// _vfsgen_dir is a static definition of a directory.
+type _vfsgen_dir struct {
 	name    string
 	entries []os.FileInfo // Not nil.
 	modTime time.Time
 }
 
-func (d *dir) Read([]byte) (int, error) {
+func (d *_vfsgen_dir) Read([]byte) (int, error) {
 	return 0, fmt.Errorf("cannot Read from directory %s", d.name)
 }
-func (d *dir) Close() error               { return nil }
-func (d *dir) Stat() (os.FileInfo, error) { return d, nil }
+func (d *_vfsgen_dir) Close() error               { return nil }
+func (d *_vfsgen_dir) Stat() (os.FileInfo, error) { return d, nil }
 
-func (d *dir) Name() string       { return d.name }
-func (d *dir) Size() int64        { return 0 }
-func (d *dir) Mode() os.FileMode  { return 0755 | os.ModeDir }
-func (d *dir) ModTime() time.Time { return d.modTime }
-func (d *dir) IsDir() bool        { return true }
-func (d *dir) Sys() interface{}   { return nil }
+func (d *_vfsgen_dir) Name() string       { return d.name }
+func (d *_vfsgen_dir) Size() int64        { return 0 }
+func (d *_vfsgen_dir) Mode() os.FileMode  { return 0755 | os.ModeDir }
+func (d *_vfsgen_dir) ModTime() time.Time { return d.modTime }
+func (d *_vfsgen_dir) IsDir() bool        { return true }
+func (d *_vfsgen_dir) Sys() interface{}   { return nil }
 
-// dirInstance is an opened dir instance.
-type dirInstance struct {
-	*dir
+// _vfsgen_dirInstance is an opened dir instance.
+type _vfsgen_dirInstance struct {
+	*_vfsgen_dir
 	pending []os.FileInfo
 }
 
-func (d *dirInstance) Seek(offset int64, whence int) (int64, error) {
+func (d *_vfsgen_dirInstance) Seek(offset int64, whence int) (int64, error) {
 	if offset == 0 && whence == os.SEEK_SET {
 		d.pending = nil
 		return 0, nil
 	}
-	return 0, fmt.Errorf("unsupported Seek in directory %s", d.dir.name)
+	return 0, fmt.Errorf("unsupported Seek in directory %s", d._vfsgen_dir.name)
 }
 
-func (d *dirInstance) Readdir(count int) ([]os.FileInfo, error) {
+func (d *_vfsgen_dirInstance) Readdir(count int) ([]os.FileInfo, error) {
 	if d.pending == nil {
-		d.pending = d.dir.entries
+		d.pending = d._vfsgen_dir.entries
 	}
 
 	if len(d.pending) == 0 && count > 0 {

@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// assets statically implements the virtual filesystem given to vfsgen as input.
 var assets = func() http.FileSystem {
 	fs := _vfsgen_fs{
 		"/": &_vfsgen_dir{

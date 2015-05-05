@@ -163,9 +163,10 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 		return err
 	}
 
-	_, err = fmt.Fprintf(w, `var %s = func() http.FileSystem {
+	_, err = fmt.Fprintf(w, `// %s statically implements the virtual filesystem given to vfsgen as input.
+var %s = func() http.FileSystem {
 	fs := _vfsgen_fs{
-`, c.OutputName)
+`, c.OutputName, c.OutputName)
 	if err != nil {
 		return err
 	}

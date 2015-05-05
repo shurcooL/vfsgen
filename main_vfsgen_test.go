@@ -91,19 +91,24 @@ func (fs assetsFS) Open(path string) (http.File, error) {
 		return nil, os.ErrNotExist
 	}
 
-	if cf, ok := f.(*compressedFile); ok {
-		gr, err := gzip.NewReader(bytes.NewReader(cf.compressedContent))
+	switch f := f.(type) {
+	case *compressedFile:
+		gr, err := gzip.NewReader(bytes.NewReader(f.compressedContent))
 		if err != nil {
 			// This should never happen because we generate the gzip bytes such that they are always valid.
 			panic("unexpected error reading own gzip compressed bytes: " + err.Error())
 		}
 		return &compressedFileInstance{
-			compressedFile: cf,
+			compressedFile: f,
 			gr:             gr,
 		}, nil
+	case *dir:
+		return &dirInstance{
+			dir: f,
+		}, nil
+	default:
+		return f.(http.File), nil
 	}
-
-	return f.(http.File), nil
 }
 
 func mustUnmarshalTextTime(text string) time.Time {
@@ -187,23 +192,14 @@ func (f *compressedFileInstance) Close() error {
 // dir is ...
 type dir struct {
 	name    string
-	entries []os.FileInfo
+	entries []os.FileInfo // Not nil.
 	modTime time.Time
 }
 
 func (d *dir) Read([]byte) (int, error) {
 	return 0, fmt.Errorf("cannot Read from directory %s", d.name)
 }
-func (d *dir) Seek(offset int64, whence int) (int64, error) {
-	return 0, fmt.Errorf("cannot Seek in directory %s", d.name)
-}
-func (d *dir) Close() error { return nil }
-func (d *dir) Readdir(count int) ([]os.FileInfo, error) {
-	if count != 0 {
-		log.Panicln("httpDir.Readdir count unsupported value:", count)
-	}
-	return d.entries, nil
-}
+func (d *dir) Close() error               { return nil }
 func (d *dir) Stat() (os.FileInfo, error) { return d, nil }
 
 func (d *dir) Name() string       { return d.name }
@@ -212,3 +208,33 @@ func (d *dir) Mode() os.FileMode  { return 0755 | os.ModeDir }
 func (d *dir) ModTime() time.Time { return d.modTime }
 func (d *dir) IsDir() bool        { return true }
 func (d *dir) Sys() interface{}   { return nil }
+
+// dirInstance is an opened dir instance.
+type dirInstance struct {
+	*dir
+	pending []os.FileInfo
+}
+
+func (d *dirInstance) Seek(offset int64, whence int) (int64, error) {
+	if offset == 0 && whence == os.SEEK_SET {
+		d.pending = nil
+		return 0, nil
+	}
+	return 0, fmt.Errorf("unsupported Seek in directory %s", d.dir.name)
+}
+
+func (d *dirInstance) Readdir(count int) ([]os.FileInfo, error) {
+	if d.pending == nil {
+		d.pending = d.dir.entries
+	}
+
+	if len(d.pending) == 0 && count > 0 {
+		return nil, io.EOF
+	}
+	if count <= 0 || count > len(d.pending) {
+		count = len(d.pending)
+	}
+	e := d.pending[:count]
+	d.pending = d.pending[count:]
+	return e, nil
+}

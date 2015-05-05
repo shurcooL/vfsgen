@@ -18,6 +18,8 @@ func main() {
 		"folderA/file1.txt":              "Stuff.",
 		"folderA/file2.txt":              "Stuff.",
 		"folderB/folderC/file3.txt":      "Stuff.",
+		// TODO: Empty folder somehow?
+		//"folder-empty/":                  "",
 	}))
 
 	config := vfsgen.NewConfig()

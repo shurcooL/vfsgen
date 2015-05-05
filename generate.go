@@ -163,9 +163,7 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 		return err
 	}
 
-	_, err = fmt.Fprintf(w, `type assetsFS map[string]interface{}
-
-var %s = func() http.FileSystem {
+	_, err = fmt.Fprintf(w, `var %s = func() http.FileSystem {
 	fs := assetsFS{
 `, c.OutputName)
 	if err != nil {
@@ -241,6 +239,8 @@ var %s = func() http.FileSystem {
 
 func writeVFS(w io.Writer) error {
 	_, err := fmt.Fprint(w, `
+type assetsFS map[string]interface{}
+
 func (fs assetsFS) Open(path string) (http.File, error) {
 	f, ok := fs[path]
 	if !ok {

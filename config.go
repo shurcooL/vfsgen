@@ -22,7 +22,7 @@ type Config struct {
 	// OutputVariableName
 
 	// Output defines the output file for the generated code.
-	// If left empty, this defaults to "./vfsdata.go".
+	// If left empty, this defaults to "./{{.OutputName}}_vfsdata.go".
 	Output string
 
 	// Tags specify a set of optional build tags, which should be
@@ -51,12 +51,12 @@ func (c *Config) validate() error {
 		return fmt.Errorf("Failed to stat input root: %v", err)
 	}
 
-	if c.Output == "" {
-		c.Output = "./vfsdata.go"
-	}
-
 	if c.OutputName == "" {
 		c.OutputName = "assets"
+	}
+
+	if c.Output == "" {
+		c.Output = fmt.Sprintf("./%s_vfsdata.go", c.OutputName)
 	}
 
 	switch stat, err := os.Lstat(c.Output); {

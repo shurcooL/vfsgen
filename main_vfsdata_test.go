@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-type assetsFS map[string]interface{}
-
 var assets = func() http.FileSystem {
 	fs := assetsFS{
 		"/": &dir{
@@ -84,6 +82,8 @@ var assets = func() http.FileSystem {
 
 	return fs
 }()
+
+type assetsFS map[string]interface{}
 
 func (fs assetsFS) Open(path string) (http.File, error) {
 	f, ok := fs[path]

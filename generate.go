@@ -165,6 +165,15 @@ func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
 
 	_, err = fmt.Fprintf(w, `// %s statically implements the virtual filesystem given to vfsgen as input.
 var %s = func() http.FileSystem {
+	mustUnmarshalTextTime := func(text string) time.Time {
+		var t time.Time
+		err := t.UnmarshalText([]byte(text))
+		if err != nil {
+			panic(err)
+		}
+		return t
+	}
+
 	fs := _vfsgen_fs{
 `, c.OutputName, c.OutputName)
 	if err != nil {
@@ -268,15 +277,6 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 		// This should never happen because we generate only the above types.
 		panic(fmt.Sprintf("unexpected type %T", f))
 	}
-}
-
-func mustUnmarshalTextTime(text string) time.Time {
-	var t time.Time
-	err := t.UnmarshalText([]byte(text))
-	if err != nil {
-		panic(err)
-	}
-	return t
 }
 
 // _vfsgen_compressedFile is a static definition of a gzip compressed file.

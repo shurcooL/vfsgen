@@ -2,15 +2,15 @@ package vfsgen
 
 import "time"
 
-// file is ...
-type file struct {
+// fileInfo is ...
+type fileInfo struct {
 	name             string
 	uncompressedSize int64
 	modTime          time.Time
 }
 
-// dir is ...
-type dir struct {
+// dirInfo is ...
+type dirInfo struct {
 	name    string
 	entries []string
 	modTime time.Time

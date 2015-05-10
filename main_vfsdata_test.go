@@ -15,6 +15,15 @@ import (
 
 // assets statically implements the virtual filesystem given to vfsgen as input.
 var assets = func() http.FileSystem {
+	mustUnmarshalTextTime := func(text string) time.Time {
+		var t time.Time
+		err := t.UnmarshalText([]byte(text))
+		if err != nil {
+			panic(err)
+		}
+		return t
+	}
+
 	fs := _vfsgen_fs{
 		"/": &_vfsgen_dir{
 			name:    "/",
@@ -112,15 +121,6 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 		// This should never happen because we generate only the above types.
 		panic(fmt.Sprintf("unexpected type %T", f))
 	}
-}
-
-func mustUnmarshalTextTime(text string) time.Time {
-	var t time.Time
-	err := t.UnmarshalText([]byte(text))
-	if err != nil {
-		panic(err)
-	}
-	return t
 }
 
 // _vfsgen_compressedFile is a static definition of a gzip compressed file.

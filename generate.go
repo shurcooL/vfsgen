@@ -121,7 +121,7 @@ func findFiles(fs http.FileSystem, toc *[]pathAsset) error {
 		case !fi.IsDir():
 			*toc = append(*toc, pathAsset{
 				path: path,
-				asset: &compressedFile{
+				asset: &file{
 					name:             pathpkg.Base(path),
 					uncompressedSize: fi.Size(),
 					modTime:          fi.ModTime(),
@@ -144,6 +144,9 @@ type pathAsset struct {
 	path  string
 	asset interface{}
 }
+
+// THINK: Will this work? Can't do it with an io.Writer, need Seeker/Truncater or what?
+// func tryCompressedFile(w io.Writer,
 
 // writeAssets writes the code file.
 func writeAssets(w io.Writer, c Config, toc []pathAsset) error {
@@ -194,7 +197,7 @@ var %s = func() http.FileSystem {
 			}
 			fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 			fmt.Fprintf(w, "\t\t},\n")
-		case *compressedFile:
+		case *file:
 			_, err = fmt.Fprintf(w, "\t\t%q: &_vfsgen_compressedFile{\n", pathAsset.path)
 			if err != nil {
 				return err
@@ -204,11 +207,12 @@ var %s = func() http.FileSystem {
 			f, _ := c.Input.Open(pathAsset.path)
 			sw := &StringWriter{Writer: w}
 			gz := gzip.NewWriter(sw)
-			io.Copy(gz, f)
-			gz.Close()
-			f.Close()
+			_, _ = io.Copy(gz, f)
+			_ = gz.Close()
+			_ = f.Close()
 			fmt.Fprintf(w, "\"),\n")
 			fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
+			//fmt.Fprintf(w, "\t\t\t// compressedSize: %d,\n", sw.c)
 			modTimeBytes, err := asset.modTime.MarshalText()
 			if err != nil {
 				return err

@@ -16,7 +16,7 @@ func (w *StringWriter) Write(p []byte) (n int, err error) {
 		return
 	}
 
-	buf := []byte(`\x00`)
+	buf := []byte(`\x__`)
 	var b byte
 
 	for n, b = range p {

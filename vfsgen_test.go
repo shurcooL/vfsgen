@@ -11,7 +11,7 @@ import (
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
-//go:generate go run main_test_generate.go
+//go:generate go run vfsgen_test_generate.go
 
 func Example() {
 	var fs http.FileSystem = assets

@@ -14,8 +14,8 @@ import (
 
 // This code will generate a vfsdata.go file that statically implements the contents of "assets" directory.
 //
-// It is typically meant to be executed via go generate directives. This code can go in a `assets_gen.go` file,
-// which can then be invoked via `//go:generate go run assets_gen.go`. The input virtual filesystem can read
+// It is typically meant to be executed via go generate directives. This code can go in an assets_gen.go file,
+// which can then be invoked via "//go:generate go run assets_gen.go". The input virtual filesystem can read
 // directly from disk, or it can be something more involved.
 func Example() {
 	var fs http.FileSystem = http.Dir("assets")

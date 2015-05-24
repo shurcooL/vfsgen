@@ -13,7 +13,8 @@ import (
 
 //go:generate go run vfsgen_test_generate.go
 
-func Example() {
+// Basic functionality test.
+func ExampleBasic() {
 	var fs http.FileSystem = assets
 
 	walkFn := func(path string, fi os.FileInfo, err error) error {

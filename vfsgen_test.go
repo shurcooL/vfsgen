@@ -232,3 +232,15 @@ func ExampleSeek() {
 	// Output:
 	// This Blaaaaaaaa...aah! file compresses well.
 }
+
+func ExampleNotExist() {
+	var fs http.FileSystem = assets
+
+	_, err := fs.Open("/nonexistent-file.txt")
+	fmt.Println(os.IsNotExist(err))
+	fmt.Println(err)
+
+	// Output:
+	// true
+	// open /nonexistent-file.txt: file does not exist
+}

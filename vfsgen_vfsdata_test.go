@@ -99,7 +99,7 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 	// TODO: Maybe clean path?
 	f, ok := fs[path]
 	if !ok {
-		return nil, os.ErrNotExist
+		return nil, &os.PathError{"open", path, os.ErrNotExist}
 	}
 
 	switch f := f.(type) {

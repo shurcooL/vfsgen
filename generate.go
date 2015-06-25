@@ -49,13 +49,13 @@ func Generate(c Config) error {
 		return err
 	}
 
-	var toc []pathAsset
-	err = findAndWriteFiles(f, c.Input, &toc)
+	var dirs []pathDirInfo
+	err = findAndWriteFiles(f, c.Input, &dirs)
 	if err != nil {
 		return err
 	}
 
-	err = writeDirEntries(f, c, toc)
+	err = writeDirEntries(f, c, dirs)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func readDirPaths(fs http.FileSystem, dirname string) ([]string, error) {
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findAndWriteFiles(w io.Writer, fs http.FileSystem, toc *[]pathAsset) error {
+func findAndWriteFiles(w io.Writer, fs http.FileSystem, dirs *[]pathDirInfo) error {
 	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %s: %v\n", path, err)
@@ -106,9 +106,9 @@ func findAndWriteFiles(w io.Writer, fs http.FileSystem, toc *[]pathAsset) error 
 				modTime: fi.ModTime(),
 			}
 
-			*toc = append(*toc, pathAsset{
-				path:  path,
-				asset: asset,
+			*dirs = append(*dirs, pathDirInfo{
+				path:    path,
+				dirInfo: asset,
 			})
 
 			// Write _vfsgen_dirInfo.
@@ -132,11 +132,6 @@ func findAndWriteFiles(w io.Writer, fs http.FileSystem, toc *[]pathAsset) error 
 				uncompressedSize: fi.Size(),
 				modTime:          fi.ModTime(),
 			}
-
-			*toc = append(*toc, pathAsset{
-				path:  path,
-				asset: asset,
-			})
 
 			// Write _vfsgen_compressedFile.
 			{
@@ -175,33 +170,30 @@ func findAndWriteFiles(w io.Writer, fs http.FileSystem, toc *[]pathAsset) error 
 	return nil
 }
 
-type pathAsset struct {
-	path  string
-	asset interface{}
+type pathDirInfo struct {
+	path    string
+	dirInfo *dirInfo
 }
 
 // THINK: Will this work? Can't do it with an io.Writer, need Seeker/Truncater or what?
 // func tryCompressedFile(w io.Writer,
 
-func writeDirEntries(w io.Writer, c Config, toc []pathAsset) error {
+func writeDirEntries(w io.Writer, c Config, dirs []pathDirInfo) error {
 	_, err := fmt.Fprintf(w, "\t}\n\n")
 	if err != nil {
 		return err
 	}
 
-	for _, pathAsset := range toc {
-		switch asset := pathAsset.asset.(type) {
-		case *dirInfo:
-			switch len(asset.entries) {
-			case 0:
-				fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{} // Not nil.\n", pathAsset.path)
-			default:
-				fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{\n", pathAsset.path)
-				for _, entry := range asset.entries {
-					fmt.Fprintf(w, "\t\tfs[%q].(os.FileInfo),\n", entry)
-				}
-				fmt.Fprintf(w, "\t}\n")
+	for _, pathDirInfo := range dirs {
+		switch len(pathDirInfo.dirInfo.entries) {
+		case 0:
+			fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{} // Not nil.\n", pathDirInfo.path)
+		default:
+			fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{\n", pathDirInfo.path)
+			for _, entry := range pathDirInfo.dirInfo.entries {
+				fmt.Fprintf(w, "\t\tfs[%q].(os.FileInfo),\n", entry)
 			}
+			fmt.Fprintf(w, "\t}\n")
 		}
 	}
 

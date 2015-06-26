@@ -7,6 +7,6 @@ Features:
 
 -	Outputs gofmt-compatible .go code.
 
--	Supports gzip compression internally.
+-	Uses gzip compression internally (selectively, only for files that compress well).
 */
 package vfsgen

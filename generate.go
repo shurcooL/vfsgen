@@ -2,6 +2,7 @@ package vfsgen
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -65,6 +66,16 @@ func Generate(c Config) error {
 		return err
 	}
 
+	// Trim any potential excess.
+	cur, err := f.Seek(0, os.SEEK_CUR)
+	if err != nil {
+		return err
+	}
+	err = f.Truncate(cur)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -86,15 +97,51 @@ func readDirPaths(fs http.FileSystem, dirname string) ([]string, error) {
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findAndWriteFiles(w io.Writer, fs http.FileSystem, dirs *[]pathDirInfo) error {
+func findAndWriteFiles(f *os.File, fs http.FileSystem, dirs *[]pathDirInfo) error {
 	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %s: %v\n", path, err)
 			return nil
 		}
 
-		switch {
-		case fi.IsDir():
+		switch fi.IsDir() {
+		case false:
+			asset := &fileInfo{
+				name:             pathpkg.Base(path),
+				uncompressedSize: fi.Size(),
+				modTime:          fi.ModTime(),
+			}
+
+			marker, err := f.Seek(0, os.SEEK_CUR)
+			if err != nil {
+				return err
+			}
+
+			// Write _vfsgen_compressedFileInfo.
+			err = writeCompressedFileInfo(f, path, asset, r)
+			switch err {
+			default:
+				return err
+			case nil:
+			// If compressed file is not smaller than original, revert and write original file.
+			case errCompressedNotSmaller:
+				_, err = r.Seek(0, os.SEEK_SET)
+				if err != nil {
+					return err
+				}
+
+				_, err = f.Seek(marker, os.SEEK_SET)
+				if err != nil {
+					return err
+				}
+
+				// Write _vfsgen_fileInfo.
+				err = writeFileInfo(f, path, asset, r)
+				if err != nil {
+					return err
+				}
+			}
+		case true:
 			entries, err := readDirPaths(fs, path)
 			if err != nil {
 				return err
@@ -112,50 +159,9 @@ func findAndWriteFiles(w io.Writer, fs http.FileSystem, dirs *[]pathDirInfo) err
 			})
 
 			// Write _vfsgen_dirInfo.
-			{
-				_, err = fmt.Fprintf(w, "\t\t%q: &_vfsgen_dirInfo{\n", path)
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
-				modTimeBytes, err := asset.modTime.MarshalText()
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
-				fmt.Fprintf(w, "\t\t},\n")
-			}
-
-		case !fi.IsDir():
-			asset := &fileInfo{
-				name:             pathpkg.Base(path),
-				uncompressedSize: fi.Size(),
-				modTime:          fi.ModTime(),
-			}
-
-			// Write _vfsgen_compressedFile.
-			{
-				_, err = fmt.Fprintf(w, "\t\t%q: &_vfsgen_compressedFileInfo{\n", path)
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(w, "\t\t\tname:              %q,\n", asset.name)
-				fmt.Fprintf(w, "\t\t\tcompressedContent: []byte(\"")
-				sw := &stringWriter{Writer: w}
-				gz := gzip.NewWriter(sw)
-				_, err = io.Copy(gz, r)
-				if err != nil {
-					return err
-				}
-				_ = gz.Close()
-				fmt.Fprintf(w, "\"),\n")
-				fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
-				modTimeBytes, err := asset.modTime.MarshalText()
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
-				fmt.Fprintf(w, "\t\t},\n")
+			err = writeDirInfo(f, path, asset)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -175,8 +181,77 @@ type pathDirInfo struct {
 	dirInfo *dirInfo
 }
 
-// THINK: Will this work? Can't do it with an io.Writer, need Seeker/Truncater or what?
-// func tryCompressedFile(w io.Writer,
+var errCompressedNotSmaller = errors.New("compressed file is not smaller than original")
+
+// writeCompressedFileInfo writes _vfsgen_compressedFile.
+// It returns errCompressedNotSmaller if compressed file is not smaller than original.
+func writeCompressedFileInfo(w io.Writer, path string, asset *fileInfo, r io.Reader) error {
+	_, err := fmt.Fprintf(w, "\t\t%q: &_vfsgen_compressedFileInfo{\n", path)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tname:              %q,\n", asset.name)
+	fmt.Fprintf(w, "\t\t\tcompressedContent: []byte(\"")
+	sw := &stringWriter{Writer: w}
+	gz := gzip.NewWriter(sw)
+	_, err = io.Copy(gz, r)
+	if err != nil {
+		return err
+	}
+	_ = gz.Close()
+	if sw.c >= asset.uncompressedSize {
+		return errCompressedNotSmaller
+	}
+	fmt.Fprintf(w, "\"),\n")
+	fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
+	modTimeBytes, err := asset.modTime.MarshalText()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
+	fmt.Fprintf(w, "\t\t},\n")
+	return nil
+}
+
+// Write _vfsgen_fileInfo.
+func writeFileInfo(w io.Writer, path string, asset *fileInfo, r io.Reader) error {
+	_, err := fmt.Fprintf(w, "\t\t%q: &_vfsgen_fileInfo{\n", path)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
+	fmt.Fprintf(w, "\t\t\tcontent: []byte(\"")
+	sw := &stringWriter{Writer: w}
+	_, err = io.Copy(sw, r)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\"),\n")
+	fmt.Fprintf(w, "\t\t\tsize:    %d,\n", asset.uncompressedSize)
+	modTimeBytes, err := asset.modTime.MarshalText()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
+	fmt.Fprintf(w, "\t\t},\n")
+	return nil
+}
+
+// writeDirInfo writes _vfsgen_dirInfo.
+func writeDirInfo(w io.Writer, path string, asset *dirInfo) error {
+	_, err := fmt.Fprintf(w, "\t\t%q: &_vfsgen_dirInfo{\n", path)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
+	modTimeBytes, err := asset.modTime.MarshalText()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
+	fmt.Fprintf(w, "\t\t},\n")
+	return nil
+}
 
 func writeDirEntries(w io.Writer, c Config, dirs []pathDirInfo) error {
 	_, err := fmt.Fprintf(w, "\t}\n\n")
@@ -257,6 +332,11 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 			_vfsgen_compressedFileInfo: f,
 			gr: gr,
 		}, nil
+	case *_vfsgen_fileInfo:
+		return &_vfsgen_file{
+			_vfsgen_fileInfo: f,
+			Reader:           bytes.NewReader(f.content),
+		}, nil
 	case *_vfsgen_dirInfo:
 		return &_vfsgen_dir{
 			_vfsgen_dirInfo: f,
@@ -335,6 +415,38 @@ func (f *_vfsgen_compressedFile) Seek(offset int64, whence int) (int64, error) {
 }
 func (f *_vfsgen_compressedFile) Close() error {
 	return f.gr.Close()
+}
+
+// _vfsgen_fileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
+type _vfsgen_fileInfo struct {
+	name    string
+	content []byte
+	size    int64
+	modTime time.Time
+}
+
+func (f *_vfsgen_fileInfo) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, fmt.Errorf("cannot Readdir from file %s", f.name)
+}
+func (f *_vfsgen_fileInfo) Stat() (os.FileInfo, error) { return f, nil }
+
+func (f *_vfsgen_fileInfo) NotWorthGzipCompressing() {} // TODO: Figure out a good interface to encode this information.
+
+func (f *_vfsgen_fileInfo) Name() string       { return f.name }
+func (f *_vfsgen_fileInfo) Size() int64        { return f.size }
+func (f *_vfsgen_fileInfo) Mode() os.FileMode  { return 0444 }
+func (f *_vfsgen_fileInfo) ModTime() time.Time { return f.modTime }
+func (f *_vfsgen_fileInfo) IsDir() bool        { return false }
+func (f *_vfsgen_fileInfo) Sys() interface{}   { return nil }
+
+// _vfsgen_file is an opened file instance.
+type _vfsgen_file struct {
+	*_vfsgen_fileInfo
+	*bytes.Reader
+}
+
+func (f *_vfsgen_file) Close() error {
+	return nil
 }
 
 // _vfsgen_dirInfo is a static definition of a directory.

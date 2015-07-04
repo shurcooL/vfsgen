@@ -33,17 +33,17 @@ var assets = func() http.FileSystem {
 			name:    "folderA",
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
-		"/folderA/file1.txt": &_vfsgen_compressedFileInfo{
-			name:              "file1.txt",
-			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
-			uncompressedSize:  6,
-			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+		"/folderA/file1.txt": &_vfsgen_fileInfo{
+			name:    "file1.txt",
+			content: []byte("\x53\x74\x75\x66\x66\x2e"),
+			size:    6,
+			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
-		"/folderA/file2.txt": &_vfsgen_compressedFileInfo{
-			name:              "file2.txt",
-			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
-			uncompressedSize:  6,
-			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+		"/folderA/file2.txt": &_vfsgen_fileInfo{
+			name:    "file2.txt",
+			content: []byte("\x53\x74\x75\x66\x66\x2e"),
+			size:    6,
+			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
 		"/folderB": &_vfsgen_dirInfo{
 			name:    "folderB",
@@ -53,17 +53,17 @@ var assets = func() http.FileSystem {
 			name:    "folderC",
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
-		"/folderB/folderC/file3.txt": &_vfsgen_compressedFileInfo{
-			name:              "file3.txt",
-			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\x2e\x29\x4d\x4b\xd3\x03\x04\x00\x00\xff\xff\x27\xbb\x40\xc8\x06\x00\x00\x00"),
-			uncompressedSize:  6,
-			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+		"/folderB/folderC/file3.txt": &_vfsgen_fileInfo{
+			name:    "file3.txt",
+			content: []byte("\x53\x74\x75\x66\x66\x2e"),
+			size:    6,
+			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
-		"/not-worth-compressing-file.txt": &_vfsgen_compressedFileInfo{
-			name:              "not-worth-compressing-file.txt",
-			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xf2\x2c\x29\x56\xc8\xcb\x2f\xca\x4d\xcc\x51\x48\xce\xcf\x2b\x49\xcd\x03\xf2\x13\x8b\x52\x15\x32\x52\x8b\x52\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"),
-			uncompressedSize:  29,
-			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+		"/not-worth-compressing-file.txt": &_vfsgen_fileInfo{
+			name:    "not-worth-compressing-file.txt",
+			content: []byte("\x49\x74\x73\x20\x6e\x6f\x72\x6d\x61\x6c\x20\x63\x6f\x6e\x74\x65\x6e\x74\x73\x20\x61\x72\x65\x20\x68\x65\x72\x65\x2e"),
+			size:    29,
+			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
 		"/sample-file.txt": &_vfsgen_compressedFileInfo{
 			name:              "sample-file.txt",
@@ -112,6 +112,11 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 		return &_vfsgen_compressedFile{
 			_vfsgen_compressedFileInfo: f,
 			gr: gr,
+		}, nil
+	case *_vfsgen_fileInfo:
+		return &_vfsgen_file{
+			_vfsgen_fileInfo: f,
+			Reader:           bytes.NewReader(f.content),
 		}, nil
 	case *_vfsgen_dirInfo:
 		return &_vfsgen_dir{
@@ -191,6 +196,38 @@ func (f *_vfsgen_compressedFile) Seek(offset int64, whence int) (int64, error) {
 }
 func (f *_vfsgen_compressedFile) Close() error {
 	return f.gr.Close()
+}
+
+// _vfsgen_fileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
+type _vfsgen_fileInfo struct {
+	name    string
+	content []byte
+	size    int64
+	modTime time.Time
+}
+
+func (f *_vfsgen_fileInfo) Readdir(count int) ([]os.FileInfo, error) {
+	return nil, fmt.Errorf("cannot Readdir from file %s", f.name)
+}
+func (f *_vfsgen_fileInfo) Stat() (os.FileInfo, error) { return f, nil }
+
+func (f *_vfsgen_fileInfo) NotWorthGzipCompressing() {} // TODO: Figure out a good interface to encode this information.
+
+func (f *_vfsgen_fileInfo) Name() string       { return f.name }
+func (f *_vfsgen_fileInfo) Size() int64        { return f.size }
+func (f *_vfsgen_fileInfo) Mode() os.FileMode  { return 0444 }
+func (f *_vfsgen_fileInfo) ModTime() time.Time { return f.modTime }
+func (f *_vfsgen_fileInfo) IsDir() bool        { return false }
+func (f *_vfsgen_fileInfo) Sys() interface{}   { return nil }
+
+// _vfsgen_file is an opened file instance.
+type _vfsgen_file struct {
+	*_vfsgen_fileInfo
+	*bytes.Reader
+}
+
+func (f *_vfsgen_file) Close() error {
+	return nil
 }
 
 // _vfsgen_dirInfo is a static definition of a directory.

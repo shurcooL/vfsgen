@@ -78,6 +78,10 @@ type gzipByter interface {
 	GzipBytes() []byte
 }
 
+type notWorthGzipCompressing interface {
+	NotWorthGzipCompressing()
+}
+
 func ExampleCompressed() {
 	// Compressed file system.
 	var fs http.FileSystem = assets
@@ -122,24 +126,24 @@ func ExampleCompressed() {
 	// /folderA
 	// /folderA/file1.txt
 	// "Stuff." <nil>
-	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n.)MK\xd3\x03\x04\x00\x00\xff\xff'\xbb@\xc8\x06\x00\x00\x00"
+	// <not compressed>
 	// /folderA/file2.txt
 	// "Stuff." <nil>
-	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n.)MK\xd3\x03\x04\x00\x00\xff\xff'\xbb@\xc8\x06\x00\x00\x00"
+	// <not compressed>
 	// /folderB
 	// /folderB/folderC
 	// /folderB/folderC/file3.txt
 	// "Stuff." <nil>
-	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n.)MK\xd3\x03\x04\x00\x00\xff\xff'\xbb@\xc8\x06\x00\x00\x00"
+	// <not compressed>
 	// /not-worth-compressing-file.txt
 	// "Its normal contents are here." <nil>
-	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\xf2,)V\xc8\xcb/\xcaM\xccQH\xce\xcf+I\xcd\x03\xf2\x13\x8bR\x152R\x8bR\xf5\x00\x01\x00\x00\xff\xff\xdc\xc7\xff\x13\x1d\x00\x00\x00"
+	// <not compressed>
 	// /sample-file.txt
 	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah!" <nil>
 	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x11\x10\x00\x00\xff\xff\xe7G\x81:\xbd\x00\x00\x00"
 }
 
-func ExampleReadTwoOpenedFiles() {
+func ExampleReadTwoOpenedCompressedFiles() {
 	var fs http.FileSystem = assets
 
 	f0, err := fs.Open("/sample-file.txt")
@@ -147,11 +151,13 @@ func ExampleReadTwoOpenedFiles() {
 		panic(err)
 	}
 	defer f0.Close()
+	_ = f0.(gzipByter)
 	f1, err := fs.Open("/sample-file.txt")
 	if err != nil {
 		panic(err)
 	}
 	defer f1.Close()
+	_ = f1.(gzipByter)
 
 	_, err = io.CopyN(os.Stdout, f0, 9)
 	if err != nil {
@@ -164,6 +170,35 @@ func ExampleReadTwoOpenedFiles() {
 
 	// Output:
 	// This fileThis file
+}
+
+func ExampleReadTwoOpenedUncompressedFiles() {
+	var fs http.FileSystem = assets
+
+	f0, err := fs.Open("/not-worth-compressing-file.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f0.Close()
+	_ = f0.(notWorthGzipCompressing)
+	f1, err := fs.Open("/not-worth-compressing-file.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f1.Close()
+	_ = f1.(notWorthGzipCompressing)
+
+	_, err = io.CopyN(os.Stdout, f0, 9)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.CopyN(os.Stdout, f1, 9)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// Its normaIts norma
 }
 
 func ExampleModTime() {

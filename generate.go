@@ -103,7 +103,7 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 			asset := &fileInfo{
 				name:             pathpkg.Base(path),
 				uncompressedSize: fi.Size(),
-				modTime:          fi.ModTime(),
+				modTime:          fi.ModTime().UTC(),
 			}
 
 			marker, err := f.Seek(0, os.SEEK_CUR)
@@ -146,7 +146,7 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 			asset := &dirInfo{
 				name:    pathpkg.Base(path),
 				entries: entries,
-				modTime: fi.ModTime(),
+				modTime: fi.ModTime().UTC(),
 			}
 
 			toc.dirs = append(toc.dirs, pathDirInfo{

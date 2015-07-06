@@ -271,11 +271,11 @@ func ExampleSeek() {
 func ExampleNotExist() {
 	var fs http.FileSystem = assets
 
-	_, err := fs.Open("/nonexistent-file.txt")
-	fmt.Println(os.IsNotExist(err))
+	_, err := fs.Open("/does-not-exist")
+	fmt.Println("os.IsNotExist:", os.IsNotExist(err))
 	fmt.Println(err)
 
 	// Output:
-	// true
-	// open /nonexistent-file.txt: file does not exist
+	// os.IsNotExist: true
+	// open /does-not-exist: file does not exist
 }

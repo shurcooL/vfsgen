@@ -256,11 +256,7 @@ func writeDirEntries(w io.Writer, c Config, toc toc) error {
 	}
 
 	for _, pathDirInfo := range toc.dirs {
-		switch len(pathDirInfo.dirInfo.entries) {
-		case 0:
-			// TODO: Handle gofmt issue.
-			fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{} // Not nil.\n", pathDirInfo.path)
-		default:
+		if len(pathDirInfo.dirInfo.entries) > 0 {
 			fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{\n", pathDirInfo.path)
 			for _, entry := range pathDirInfo.dirInfo.entries {
 				fmt.Fprintf(w, "\t\tfs[%q].(os.FileInfo),\n", entry)
@@ -456,7 +452,7 @@ func (f *_vfsgen_file) Close() error {
 // _vfsgen_dirInfo is a static definition of a directory.
 type _vfsgen_dirInfo struct {
 	name    string
-	entries []os.FileInfo // Not nil.
+	entries []os.FileInfo
 	modTime time.Time
 }
 
@@ -476,30 +472,26 @@ func (d *_vfsgen_dirInfo) Sys() interface{}   { return nil }
 // _vfsgen_dir is an opened dir instance.
 type _vfsgen_dir struct {
 	*_vfsgen_dirInfo
-	pending []os.FileInfo
+	pos int // Position within entries for Seek and Readdir.
 }
 
 func (d *_vfsgen_dir) Seek(offset int64, whence int) (int64, error) {
 	if offset == 0 && whence == os.SEEK_SET {
-		d.pending = nil
+		d.pos = 0
 		return 0, nil
 	}
 	return 0, fmt.Errorf("unsupported Seek in directory %s", d._vfsgen_dirInfo.name)
 }
 
 func (d *_vfsgen_dir) Readdir(count int) ([]os.FileInfo, error) {
-	if d.pending == nil {
-		d.pending = d._vfsgen_dirInfo.entries
-	}
-
-	if len(d.pending) == 0 && count > 0 {
+	if d.pos >= len(d._vfsgen_dirInfo.entries) && count > 0 {
 		return nil, io.EOF
 	}
-	if count <= 0 || count > len(d.pending) {
-		count = len(d.pending)
+	if count <= 0 || count > len(d._vfsgen_dirInfo.entries)-d.pos {
+		count = len(d._vfsgen_dirInfo.entries) - d.pos
 	}
-	e := d.pending[:count]
-	d.pending = d.pending[count:]
+	e := d._vfsgen_dirInfo.entries[d.pos : d.pos+count]
+	d.pos += count
 	return e, nil
 }
 `))

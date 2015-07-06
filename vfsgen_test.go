@@ -268,6 +268,69 @@ func ExampleSeek() {
 	// This Blaaaaaaaa...aah! file compresses well.
 }
 
+type fisStringer []os.FileInfo
+
+func (fis fisStringer) String() string {
+	var s = "[ "
+	for _, fi := range fis {
+		s += fi.Name() + " "
+	}
+	return s + "]"
+}
+
+func ExampleSeekDir1() {
+	var fs http.FileSystem = assets
+
+	f, err := fs.Open("/")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	fis, err := f.Readdir(0)
+	fmt.Println(fisStringer(fis), err)
+
+	// Output:
+	// [ folderA folderB not-worth-compressing-file.txt sample-file.txt ] <nil>
+}
+
+func ExampleSeekDir2() {
+	var fs http.FileSystem = assets
+
+	f, err := fs.Open("/")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	fis, err := f.Readdir(2)
+	fmt.Println(fisStringer(fis), err)
+	fis, err = f.Readdir(1)
+	fmt.Println(fisStringer(fis), err)
+	_, err = f.Seek(0, os.SEEK_SET)
+	fmt.Println(err)
+	fis, err = f.Readdir(2)
+	fmt.Println(fisStringer(fis), err)
+	_, err = f.Seek(0, os.SEEK_SET)
+	fmt.Println(err)
+	fis, err = f.Readdir(1)
+	fmt.Println(fisStringer(fis), err)
+	fis, err = f.Readdir(10)
+	fmt.Println(fisStringer(fis), err)
+	fis, err = f.Readdir(10)
+	fmt.Println(fisStringer(fis), err)
+
+	// Output:
+	// [ folderA folderB ] <nil>
+	// [ not-worth-compressing-file.txt ] <nil>
+	// <nil>
+	// [ folderA folderB ] <nil>
+	// <nil>
+	// [ folderA ] <nil>
+	// [ folderB not-worth-compressing-file.txt sample-file.txt ] <nil>
+	// [ ] EOF
+}
+
 func ExampleNotExist() {
 	var fs http.FileSystem = assets
 

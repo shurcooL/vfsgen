@@ -400,7 +400,7 @@ func (f *_vfsgen_compressedFile) Read(p []byte) (n int, err error) {
 	}
 	n, err = f.gr.Read(p)
 	f.grPos += int64(n)
-	f.seekPos += int64(n)
+	f.seekPos = f.grPos
 	return n, err
 }
 func (f *_vfsgen_compressedFile) Seek(offset int64, whence int) (int64, error) {

@@ -187,6 +187,11 @@ func writeCompressedFileInfo(w io.Writer, path string, asset *fileInfo, r io.Rea
 		return err
 	}
 	fmt.Fprintf(w, "\t\t\tname:              %q,\n", asset.name)
+	modTimeBytes, err := asset.modTime.MarshalText()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 	fmt.Fprintf(w, "\t\t\tcompressedContent: []byte(\"")
 	sw := &stringWriter{Writer: w}
 	gz := gzip.NewWriter(sw)
@@ -200,11 +205,6 @@ func writeCompressedFileInfo(w io.Writer, path string, asset *fileInfo, r io.Rea
 	}
 	fmt.Fprintf(w, "\"),\n")
 	fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
-	modTimeBytes, err := asset.modTime.MarshalText()
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 	fmt.Fprintf(w, "\t\t},\n")
 	return nil
 }
@@ -216,6 +216,11 @@ func writeFileInfo(w io.Writer, path string, asset *fileInfo, r io.Reader) error
 		return err
 	}
 	fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
+	modTimeBytes, err := asset.modTime.MarshalText()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 	fmt.Fprintf(w, "\t\t\tcontent: []byte(\"")
 	sw := &stringWriter{Writer: w}
 	_, err = io.Copy(sw, r)
@@ -223,12 +228,6 @@ func writeFileInfo(w io.Writer, path string, asset *fileInfo, r io.Reader) error
 		return err
 	}
 	fmt.Fprintf(w, "\"),\n")
-	fmt.Fprintf(w, "\t\t\tsize:    %d,\n", asset.uncompressedSize)
-	modTimeBytes, err := asset.modTime.MarshalText()
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
 	fmt.Fprintf(w, "\t\t},\n")
 	return nil
 }
@@ -347,9 +346,9 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 // _vfsgen_compressedFileInfo is a static definition of a gzip compressed file.
 type _vfsgen_compressedFileInfo struct {
 	name              string
+	modTime           time.Time
 	compressedContent []byte
 	uncompressedSize  int64
-	modTime           time.Time
 }
 
 func (f *_vfsgen_compressedFileInfo) Readdir(count int) ([]os.FileInfo, error) {
@@ -420,9 +419,8 @@ var _ = gzip.Reader
 // _vfsgen_fileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
 type _vfsgen_fileInfo struct {
 	name    string
-	content []byte
-	size    int64
 	modTime time.Time
+	content []byte
 }
 
 func (f *_vfsgen_fileInfo) Readdir(count int) ([]os.FileInfo, error) {
@@ -433,7 +431,7 @@ func (f *_vfsgen_fileInfo) Stat() (os.FileInfo, error) { return f, nil }
 func (f *_vfsgen_fileInfo) NotWorthGzipCompressing() {} // TODO: Figure out a good interface to encode this information.
 
 func (f *_vfsgen_fileInfo) Name() string       { return f.name }
-func (f *_vfsgen_fileInfo) Size() int64        { return f.size }
+func (f *_vfsgen_fileInfo) Size() int64        { return int64(len(f.content)) }
 func (f *_vfsgen_fileInfo) Mode() os.FileMode  { return 0444 }
 func (f *_vfsgen_fileInfo) ModTime() time.Time { return f.modTime }
 func (f *_vfsgen_fileInfo) IsDir() bool        { return false }
@@ -452,8 +450,8 @@ func (f *_vfsgen_file) Close() error {
 // _vfsgen_dirInfo is a static definition of a directory.
 type _vfsgen_dirInfo struct {
 	name    string
-	entries []os.FileInfo
 	modTime time.Time
+	entries []os.FileInfo
 }
 
 func (d *_vfsgen_dirInfo) Read([]byte) (int, error) {

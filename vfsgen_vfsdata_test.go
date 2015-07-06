@@ -35,15 +35,13 @@ var assets = func() http.FileSystem {
 		},
 		"/folderA/file1.txt": &_vfsgen_fileInfo{
 			name:    "file1.txt",
-			content: []byte("\x53\x74\x75\x66\x66\x2e"),
-			size:    6,
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			content: []byte("\x53\x74\x75\x66\x66\x2e"),
 		},
 		"/folderA/file2.txt": &_vfsgen_fileInfo{
 			name:    "file2.txt",
-			content: []byte("\x53\x74\x75\x66\x66\x2e"),
-			size:    6,
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			content: []byte("\x53\x74\x75\x66\x66\x2e"),
 		},
 		"/folderB": &_vfsgen_dirInfo{
 			name:    "folderB",
@@ -55,21 +53,19 @@ var assets = func() http.FileSystem {
 		},
 		"/folderB/folderC/file3.txt": &_vfsgen_fileInfo{
 			name:    "file3.txt",
-			content: []byte("\x53\x74\x75\x66\x66\x2e"),
-			size:    6,
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			content: []byte("\x53\x74\x75\x66\x66\x2e"),
 		},
 		"/not-worth-compressing-file.txt": &_vfsgen_fileInfo{
 			name:    "not-worth-compressing-file.txt",
-			content: []byte("\x49\x74\x73\x20\x6e\x6f\x72\x6d\x61\x6c\x20\x63\x6f\x6e\x74\x65\x6e\x74\x73\x20\x61\x72\x65\x20\x68\x65\x72\x65\x2e"),
-			size:    29,
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			content: []byte("\x49\x74\x73\x20\x6e\x6f\x72\x6d\x61\x6c\x20\x63\x6f\x6e\x74\x65\x6e\x74\x73\x20\x61\x72\x65\x20\x68\x65\x72\x65\x2e"),
 		},
 		"/sample-file.txt": &_vfsgen_compressedFileInfo{
 			name:              "sample-file.txt",
+			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x11\x10\x00\x00\xff\xff\xe7\x47\x81\x3a\xbd\x00\x00\x00"),
 			uncompressedSize:  189,
-			modTime:           mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
 		},
 	}
 
@@ -131,9 +127,9 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 // _vfsgen_compressedFileInfo is a static definition of a gzip compressed file.
 type _vfsgen_compressedFileInfo struct {
 	name              string
+	modTime           time.Time
 	compressedContent []byte
 	uncompressedSize  int64
-	modTime           time.Time
 }
 
 func (f *_vfsgen_compressedFileInfo) Readdir(count int) ([]os.FileInfo, error) {
@@ -201,9 +197,8 @@ func (f *_vfsgen_compressedFile) Close() error {
 // _vfsgen_fileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
 type _vfsgen_fileInfo struct {
 	name    string
-	content []byte
-	size    int64
 	modTime time.Time
+	content []byte
 }
 
 func (f *_vfsgen_fileInfo) Readdir(count int) ([]os.FileInfo, error) {
@@ -214,7 +209,7 @@ func (f *_vfsgen_fileInfo) Stat() (os.FileInfo, error) { return f, nil }
 func (f *_vfsgen_fileInfo) NotWorthGzipCompressing() {} // TODO: Figure out a good interface to encode this information.
 
 func (f *_vfsgen_fileInfo) Name() string       { return f.name }
-func (f *_vfsgen_fileInfo) Size() int64        { return f.size }
+func (f *_vfsgen_fileInfo) Size() int64        { return int64(len(f.content)) }
 func (f *_vfsgen_fileInfo) Mode() os.FileMode  { return 0444 }
 func (f *_vfsgen_fileInfo) ModTime() time.Time { return f.modTime }
 func (f *_vfsgen_fileInfo) IsDir() bool        { return false }
@@ -233,8 +228,8 @@ func (f *_vfsgen_file) Close() error {
 // _vfsgen_dirInfo is a static definition of a directory.
 type _vfsgen_dirInfo struct {
 	name    string
-	entries []os.FileInfo
 	modTime time.Time
+	entries []os.FileInfo
 }
 
 func (d *_vfsgen_dirInfo) Read([]byte) (int, error) {

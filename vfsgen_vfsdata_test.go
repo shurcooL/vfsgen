@@ -7,7 +7,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -138,7 +137,6 @@ func (f *_vfsgen_compressedFileInfo) Readdir(count int) ([]os.FileInfo, error) {
 func (f *_vfsgen_compressedFileInfo) Stat() (os.FileInfo, error) { return f, nil }
 
 func (f *_vfsgen_compressedFileInfo) GzipBytes() []byte {
-	log.Println("using GzipBytes for", f.name)
 	return f.compressedContent
 }
 

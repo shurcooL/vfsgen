@@ -1,4 +1,4 @@
-// +build ignore
+// +build generate
 
 package main
 
@@ -25,7 +25,7 @@ func main() {
 	config := vfsgen.Config{
 		Input:   fs,
 		Package: "vfsgen_test",
-		Output:  "./vfsgen_vfsdata_test.go",
+		Output:  "vfsgen_vfsdata_test.go",
 	}
 
 	err := vfsgen.Generate(config)

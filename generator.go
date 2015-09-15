@@ -11,6 +11,7 @@ import (
 	pathpkg "path"
 	"sort"
 	"text/template"
+	"time"
 
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
@@ -73,6 +74,25 @@ type toc struct {
 	File           bool // There's at least one uncompressed file.
 }
 
+type pathDirInfo struct {
+	path    string
+	dirInfo *dirInfo
+}
+
+// fileInfo is a definition of a file.
+type fileInfo struct {
+	name             string
+	modTime          time.Time
+	uncompressedSize int64
+}
+
+// dirInfo is a definition of a directory.
+type dirInfo struct {
+	name    string
+	modTime time.Time
+	entries []string
+}
+
 // readDirPaths reads the directory named by dirname and returns
 // a sorted list of directory paths.
 func readDirPaths(fs http.FileSystem, dirname string) ([]string, error) {
@@ -102,8 +122,8 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 		case false:
 			asset := &fileInfo{
 				name:             pathpkg.Base(path),
-				uncompressedSize: fi.Size(),
 				modTime:          fi.ModTime().UTC(),
+				uncompressedSize: fi.Size(),
 			}
 
 			marker, err := f.Seek(0, os.SEEK_CUR)
@@ -145,8 +165,8 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 
 			asset := &dirInfo{
 				name:    pathpkg.Base(path),
-				entries: entries,
 				modTime: fi.ModTime().UTC(),
+				entries: entries,
 			}
 
 			toc.dirs = append(toc.dirs, pathDirInfo{
@@ -172,11 +192,6 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 	return nil
 }
 
-type pathDirInfo struct {
-	path    string
-	dirInfo *dirInfo
-}
-
 var errCompressedNotSmaller = errors.New("compressed file is not smaller than original")
 
 // writeCompressedFileInfo writes _vfsgen_compressedFileInfo.
@@ -200,7 +215,7 @@ func writeCompressedFileInfo(w io.Writer, path string, asset *fileInfo, r io.Rea
 		return err
 	}
 	_ = gz.Close()
-	if sw.c >= asset.uncompressedSize {
+	if sw.N >= asset.uncompressedSize {
 		return errCompressedNotSmaller
 	}
 	fmt.Fprintf(w, "\"),\n")

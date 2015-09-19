@@ -1,4 +1,4 @@
-package vfsgen_test
+package test_test
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ func Example() {
 	}
 }
 
-//go:generate go run vfsgen_test_generate.go
+//go:generate go run vfsgen_gen.go
 
 // Basic functionality test.
 func ExampleBasic() {

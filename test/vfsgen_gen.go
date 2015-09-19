@@ -24,7 +24,7 @@ func main() {
 
 	config := vfsgen.Config{
 		Input:   fs,
-		Package: "vfsgen_test",
+		Package: "test_test",
 		Output:  "vfsgen_vfsdata_test.go",
 	}
 

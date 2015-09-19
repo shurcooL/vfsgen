@@ -20,7 +20,24 @@ go get -u github.com/shurcooL/vfsgen
 Usage
 -----
 
-vfsgen is great to use via go generate directives. By using build tags, you can create a development mode where assets are loaded directly from disk via `http.Dir`, but then statically implemented for final releases.
+This code will generate a vfsdata.go file that statically implements the contents of "assets" directory.
+
+```Go
+var fs http.FileSystem = http.Dir("assets")
+
+config := vfsgen.Config{
+	Input: fs,
+}
+
+err := vfsgen.Generate(config)
+if err != nil {
+	log.Fatalln(err)
+}
+```
+
+It is typically meant to be executed via go generate directives. This code can go in an assets_gen.go file, which can then be invoked via "//go:generate go run assets_gen.go". The input virtual filesystem can read directly from disk, or it can be something more involved.
+
+By using build tags, you can create a development mode where assets are loaded directly from disk via `http.Dir`, but then statically implemented for final releases.
 
 See [shurcooL/Go-Package-Store#38](https://github.com/shurcooL/Go-Package-Store/pull/38) for a complete example of such use.
 
@@ -32,4 +49,4 @@ This package was originally based on the excellent work by [@jteeuwen](https://g
 License
 -------
 
-- [MIT License](http://opensource.org/licenses/mit-license.php)
+-	[MIT License](http://opensource.org/licenses/mit-license.php)

@@ -20,7 +20,7 @@ go get -u github.com/shurcooL/vfsgen
 Usage
 -----
 
-This code will generate a vfsdata.go file that statically implements the contents of "assets" directory.
+This code will generate an assets_vfsdata.go file that statically implements the contents of "assets" directory.
 
 ```Go
 var fs http.FileSystem = http.Dir("assets")

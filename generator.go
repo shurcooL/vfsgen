@@ -441,7 +441,7 @@ func (f *_vfsgen_fileInfo) Readdir(count int) ([]os.FileInfo, error) {
 }
 func (f *_vfsgen_fileInfo) Stat() (os.FileInfo, error) { return f, nil }
 
-func (f *_vfsgen_fileInfo) NotWorthGzipCompressing() {} // TODO: Figure out a good interface to encode this information.
+func (f *_vfsgen_fileInfo) NotWorthGzipCompressing() {}
 
 func (f *_vfsgen_fileInfo) Name() string       { return f.name }
 func (f *_vfsgen_fileInfo) Size() int64        { return int64(len(f.content)) }

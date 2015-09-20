@@ -59,7 +59,7 @@ func (c *Config) validate() error {
 		c.Output = fmt.Sprintf("./%s_vfsdata.go", c.OutputName)
 	}
 
-	switch stat, err := os.Lstat(c.Output); {
+	switch fi, err := os.Lstat(c.Output); {
 	case err != nil:
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("Output path: %v", err)
@@ -75,7 +75,7 @@ func (c *Config) validate() error {
 				return fmt.Errorf("Create output directory: %v", err)
 			}
 		}
-	case stat.IsDir():
+	case fi.IsDir():
 		return fmt.Errorf("Output path is a directory.")
 	}
 

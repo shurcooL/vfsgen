@@ -3,13 +3,13 @@ package vfsgen
 import (
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	pathpkg "path"
 	"sort"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -33,7 +33,7 @@ func Generate(c Config) error {
 	}
 	defer f.Close()
 
-	err = writeHeader(f, c)
+	err = t.ExecuteTemplate(f, "Header", c)
 	if err != nil {
 		return err
 	}
@@ -44,12 +44,12 @@ func Generate(c Config) error {
 		return err
 	}
 
-	err = writeDirEntries(f, c, toc)
+	err = t.ExecuteTemplate(f, "DirEntries", toc.dirs)
 	if err != nil {
 		return err
 	}
 
-	err = writeTrailer(f, toc)
+	err = t.ExecuteTemplate(f, "Trailer", toc)
 	if err != nil {
 		return err
 	}
@@ -68,29 +68,109 @@ func Generate(c Config) error {
 }
 
 type toc struct {
-	dirs []pathDirInfo
+	dirs []*dirInfo
 
-	CompressedFile bool // There's at least one compressedFile.
-	File           bool // There's at least one uncompressed file.
-}
-
-type pathDirInfo struct {
-	path    string
-	dirInfo *dirInfo
+	HasCompressedFile bool // There's at least one compressedFile.
+	HasFile           bool // There's at least one uncompressed file.
 }
 
 // fileInfo is a definition of a file.
 type fileInfo struct {
-	name             string
-	modTime          time.Time
-	uncompressedSize int64
+	Path             string
+	Name             string
+	ModTime          time.Time
+	UncompressedSize int64
 }
 
 // dirInfo is a definition of a directory.
 type dirInfo struct {
-	name    string
-	modTime time.Time
-	entries []string
+	Path    string
+	Name    string
+	ModTime time.Time
+	Entries []string
+}
+
+// findAndWriteFiles recursively finds all the file paths in the given directory tree.
+// They are added to the given map as keys. Values will be safe function names
+// for each file, which will be used when generating the output code.
+func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
+	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
+		if err != nil {
+			log.Printf("can't stat file %q: %v\n", path, err)
+			return nil
+		}
+
+		switch fi.IsDir() {
+		case false:
+			file := &fileInfo{
+				Path:             path,
+				Name:             pathpkg.Base(path),
+				ModTime:          fi.ModTime().UTC(),
+				UncompressedSize: fi.Size(),
+			}
+
+			marker, err := f.Seek(0, os.SEEK_CUR)
+			if err != nil {
+				return err
+			}
+
+			// Write _vfsgen_compressedFileInfo.
+			err = writeCompressedFileInfo(f, file, r)
+			switch err {
+			default:
+				return err
+			case nil:
+				toc.HasCompressedFile = true
+			// If compressed file is not smaller than original, revert and write original file.
+			case errCompressedNotSmaller:
+				_, err = r.Seek(0, os.SEEK_SET)
+				if err != nil {
+					return err
+				}
+
+				_, err = f.Seek(marker, os.SEEK_SET)
+				if err != nil {
+					return err
+				}
+
+				// Write _vfsgen_fileInfo.
+				err = writeFileInfo(f, file, r)
+				if err != nil {
+					return err
+				}
+				toc.HasFile = true
+			}
+		case true:
+			entries, err := readDirPaths(fs, path)
+			if err != nil {
+				return err
+			}
+
+			dir := &dirInfo{
+				Path:    path,
+				Name:    pathpkg.Base(path),
+				ModTime: fi.ModTime().UTC(),
+				Entries: entries,
+			}
+
+			toc.dirs = append(toc.dirs, dir)
+
+			// Write _vfsgen_dirInfo.
+			err = t.ExecuteTemplate(f, "DirInfo", dir)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	err := vfsutil.WalkFiles(fs, "/", walkFn)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // readDirPaths reads the directory named by dirname and returns
@@ -108,187 +188,61 @@ func readDirPaths(fs http.FileSystem, dirname string) ([]string, error) {
 	return paths, nil
 }
 
-// findAndWriteFiles recursively finds all the file paths in the given directory tree.
-// They are added to the given map as keys. Values will be safe function names
-// for each file, which will be used when generating the output code.
-func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
-	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
-		if err != nil {
-			log.Printf("can't stat file %s: %v\n", path, err)
-			return nil
-		}
-
-		switch fi.IsDir() {
-		case false:
-			asset := &fileInfo{
-				name:             pathpkg.Base(path),
-				modTime:          fi.ModTime().UTC(),
-				uncompressedSize: fi.Size(),
-			}
-
-			marker, err := f.Seek(0, os.SEEK_CUR)
-			if err != nil {
-				return err
-			}
-
-			// Write _vfsgen_compressedFileInfo.
-			err = writeCompressedFileInfo(f, path, asset, r)
-			switch err {
-			default:
-				return err
-			case nil:
-				toc.CompressedFile = true
-			// If compressed file is not smaller than original, revert and write original file.
-			case errCompressedNotSmaller:
-				_, err = r.Seek(0, os.SEEK_SET)
-				if err != nil {
-					return err
-				}
-
-				_, err = f.Seek(marker, os.SEEK_SET)
-				if err != nil {
-					return err
-				}
-
-				// Write _vfsgen_fileInfo.
-				err = writeFileInfo(f, path, asset, r)
-				if err != nil {
-					return err
-				}
-				toc.File = true
-			}
-		case true:
-			entries, err := readDirPaths(fs, path)
-			if err != nil {
-				return err
-			}
-
-			asset := &dirInfo{
-				name:    pathpkg.Base(path),
-				modTime: fi.ModTime().UTC(),
-				entries: entries,
-			}
-
-			toc.dirs = append(toc.dirs, pathDirInfo{
-				path:    path,
-				dirInfo: asset,
-			})
-
-			// Write _vfsgen_dirInfo.
-			err = writeDirInfo(f, path, asset)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	err := vfsutil.WalkFiles(fs, "/", walkFn)
+// writeCompressedFileInfo writes _vfsgen_compressedFileInfo.
+// It returns errCompressedNotSmaller if compressed file is not smaller than original.
+func writeCompressedFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
+	err := t.ExecuteTemplate(w, "CompressedFileInfo-Before", file)
 	if err != nil {
 		return err
 	}
-
+	sw := &stringWriter{Writer: w}
+	gw := gzip.NewWriter(sw)
+	_, err = io.Copy(gw, r)
+	if err != nil {
+		return err
+	}
+	err = gw.Close()
+	if err != nil {
+		return err
+	}
+	if sw.N >= file.UncompressedSize {
+		return errCompressedNotSmaller
+	}
+	err = t.ExecuteTemplate(w, "CompressedFileInfo-After", file)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 var errCompressedNotSmaller = errors.New("compressed file is not smaller than original")
 
-// writeCompressedFileInfo writes _vfsgen_compressedFileInfo.
-// It returns errCompressedNotSmaller if compressed file is not smaller than original.
-func writeCompressedFileInfo(w io.Writer, path string, asset *fileInfo, r io.Reader) error {
-	_, err := fmt.Fprintf(w, "\t\t%q: &_vfsgen_compressedFileInfo{\n", path)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tname:              %q,\n", asset.name)
-	modTimeBytes, err := asset.modTime.MarshalText()
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tmodTime:           mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
-	fmt.Fprintf(w, "\t\t\tcompressedContent: []byte(\"")
-	sw := &stringWriter{Writer: w}
-	gz := gzip.NewWriter(sw)
-	_, err = io.Copy(gz, r)
-	if err != nil {
-		return err
-	}
-	_ = gz.Close()
-	if sw.N >= asset.uncompressedSize {
-		return errCompressedNotSmaller
-	}
-	fmt.Fprintf(w, "\"),\n")
-	fmt.Fprintf(w, "\t\t\tuncompressedSize:  %d,\n", asset.uncompressedSize)
-	fmt.Fprintf(w, "\t\t},\n")
-	return nil
-}
-
 // Write _vfsgen_fileInfo.
-func writeFileInfo(w io.Writer, path string, asset *fileInfo, r io.Reader) error {
-	_, err := fmt.Fprintf(w, "\t\t%q: &_vfsgen_fileInfo{\n", path)
+func writeFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
+	err := t.ExecuteTemplate(w, "FileInfo-Before", file)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
-	modTimeBytes, err := asset.modTime.MarshalText()
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
-	fmt.Fprintf(w, "\t\t\tcontent: []byte(\"")
 	sw := &stringWriter{Writer: w}
 	_, err = io.Copy(sw, r)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "\"),\n")
-	fmt.Fprintf(w, "\t\t},\n")
+	err = t.ExecuteTemplate(w, "FileInfo-After", file)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-// writeDirInfo writes _vfsgen_dirInfo.
-func writeDirInfo(w io.Writer, path string, asset *dirInfo) error {
-	_, err := fmt.Fprintf(w, "\t\t%q: &_vfsgen_dirInfo{\n", path)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tname:    %q,\n", asset.name)
-	modTimeBytes, err := asset.modTime.MarshalText()
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "\t\t\tmodTime: mustUnmarshalTextTime(%q),\n", string(modTimeBytes))
-	fmt.Fprintf(w, "\t\t},\n")
-	return nil
-}
-
-func writeDirEntries(w io.Writer, c Config, toc toc) error {
-	_, err := fmt.Fprintf(w, "\t}\n\n")
-	if err != nil {
-		return err
-	}
-
-	for _, pathDirInfo := range toc.dirs {
-		if len(pathDirInfo.dirInfo.entries) > 0 {
-			fmt.Fprintf(w, "\tfs[%q].(*_vfsgen_dirInfo).entries = []os.FileInfo{\n", pathDirInfo.path)
-			for _, entry := range pathDirInfo.dirInfo.entries {
-				fmt.Fprintf(w, "\t\tfs[%q].(os.FileInfo),\n", entry)
-			}
-			fmt.Fprintf(w, "\t}\n")
-		}
-	}
-
-	_, err = fmt.Fprintf(w, "\n\treturn fs\n}()\n")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func writeHeader(w io.Writer, c Config) error {
-	header := template.Must(template.New("").Delims("⦗⦗", "⦘⦘").Parse(`// generated by vfsgen; DO NOT EDIT
+var t = template.Must(template.New("").Funcs(template.FuncMap{
+	"quote": func(s string) string {
+		return strconv.Quote(s)
+	},
+	"quoteBytes": func(b []byte) string {
+		return strconv.Quote(string(b))
+	},
+}).Delims("⦗⦗", "⦘⦘").Parse(`⦗⦗define "Header"⦘⦘// generated by vfsgen; DO NOT EDIT
 
 ⦗⦗with .Tags⦘⦘// +build ⦗⦗.⦘⦘
 
@@ -316,12 +270,50 @@ var ⦗⦗.OutputName⦘⦘ = func() http.FileSystem {
 	}
 
 	fs := _vfsgen_fs{
-`))
-	return header.Execute(w, c)
-}
+⦗⦗end⦘⦘
 
-func writeTrailer(w io.Writer, toc toc) error {
-	trailer := template.Must(template.New("").Delims("⦗⦗", "⦘⦘").Parse(`
+
+
+⦗⦗define "CompressedFileInfo-Before"⦘⦘		⦗⦗quote .Path⦘⦘: &_vfsgen_compressedFileInfo{
+			name:              ⦗⦗quote .Name⦘⦘,
+			modTime:           mustUnmarshalTextTime(⦗⦗quoteBytes .ModTime.MarshalText⦘⦘),
+			compressedContent: []byte("⦗⦗end⦘⦘⦗⦗define "CompressedFileInfo-After"⦘⦘"),
+			uncompressedSize:  ⦗⦗.UncompressedSize⦘⦘,
+		},
+⦗⦗end⦘⦘
+
+
+
+⦗⦗define "FileInfo-Before"⦘⦘		⦗⦗quote .Path⦘⦘: &_vfsgen_fileInfo{
+			name:    ⦗⦗quote .Name⦘⦘,
+			modTime: mustUnmarshalTextTime(⦗⦗quoteBytes .ModTime.MarshalText⦘⦘),
+			content: []byte("⦗⦗end⦘⦘⦗⦗define "FileInfo-After"⦘⦘"),
+		},
+⦗⦗end⦘⦘
+
+
+
+⦗⦗define "DirInfo"⦘⦘		⦗⦗quote .Path⦘⦘: &_vfsgen_dirInfo{
+			name:    ⦗⦗quote .Name⦘⦘,
+			modTime: mustUnmarshalTextTime(⦗⦗quoteBytes .ModTime.MarshalText⦘⦘),
+		},
+⦗⦗end⦘⦘
+
+
+
+⦗⦗define "DirEntries"⦘⦘	}
+
+⦗⦗range .⦘⦘⦗⦗if .Entries⦘⦘	fs[⦗⦗quote .Path⦘⦘].(*_vfsgen_dirInfo).entries = []os.FileInfo{⦗⦗range .Entries⦘⦘
+		fs[⦗⦗quote .⦘⦘].(os.FileInfo),⦗⦗end⦘⦘
+	}
+⦗⦗end⦘⦘⦗⦗end⦘⦘
+	return fs
+}()
+⦗⦗end⦘⦘
+
+
+
+⦗⦗define "Trailer"⦘⦘
 type _vfsgen_fs map[string]interface{}
 
 func (fs _vfsgen_fs) Open(path string) (http.File, error) {
@@ -331,7 +323,7 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrNotExist}
 	}
 
-	switch f := f.(type) {⦗⦗if .CompressedFile⦘⦘
+	switch f := f.(type) {⦗⦗if .HasCompressedFile⦘⦘
 	case *_vfsgen_compressedFileInfo:
 		gr, err := gzip.NewReader(bytes.NewReader(f.compressedContent))
 		if err != nil {
@@ -341,7 +333,7 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 		return &_vfsgen_compressedFile{
 			_vfsgen_compressedFileInfo: f,
 			gr: gr,
-		}, nil⦗⦗end⦘⦘⦗⦗if .File⦘⦘
+		}, nil⦗⦗end⦘⦘⦗⦗if .HasFile⦘⦘
 	case *_vfsgen_fileInfo:
 		return &_vfsgen_file{
 			_vfsgen_fileInfo: f,
@@ -356,7 +348,7 @@ func (fs _vfsgen_fs) Open(path string) (http.File, error) {
 		panic(fmt.Sprintf("unexpected type %T", f))
 	}
 }
-⦗⦗if .CompressedFile⦘⦘
+⦗⦗if .HasCompressedFile⦘⦘
 // _vfsgen_compressedFileInfo is a static definition of a gzip compressed file.
 type _vfsgen_compressedFileInfo struct {
 	name              string
@@ -428,7 +420,7 @@ func (f *_vfsgen_compressedFile) Close() error {
 ⦗⦗else⦘⦘
 // We already imported "compress/gzip", but ended up not using it. Avoid unused import error.
 var _ = gzip.Reader
-⦗⦗end⦘⦘⦗⦗if .File⦘⦘
+⦗⦗end⦘⦘⦗⦗if .HasFile⦘⦘
 // _vfsgen_fileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
 type _vfsgen_fileInfo struct {
 	name    string
@@ -505,6 +497,4 @@ func (d *_vfsgen_dir) Readdir(count int) ([]os.FileInfo, error) {
 	d.pos += count
 	return e, nil
 }
-`))
-	return trailer.Execute(w, toc)
-}
+⦗⦗end⦘⦘`))

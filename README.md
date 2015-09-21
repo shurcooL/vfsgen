@@ -75,6 +75,23 @@ interface {
 }
 ```
 
+Comparison
+----------
+
+Compared to other similar tools, vfsgen is simple and minimalistic. Its simplicity comes from relying on [`http.FileSystem`](https://godoc.org/net/http#FileSystem) abstraction as both input and output in generated code. That makes it easy to plug in to your code, especially if you're already using `http.FileSystem` implementations.
+
+It avoids unneccessary overhead by merging what was previously done with two distinct packages into a single package.
+
+It aims to be the best in its class in terms of code quality and efficiency of generated code. However, if your use goals are different, there are other similar packages that may fit your needs better.
+
+### Alternatives
+
+-	[`go-bindata`](https://github.com/jteeuwen/go-bindata) - Reads from disk, generates Go code that provides access to data via a [custom interface](https://github.com/jteeuwen/go-bindata#accessing-an-asset).
+-	[`go-bindata-assetfs`](https://github.com/elazarl/go-bindata-assetfs) - Takes output of go-bindata and provides a wrapper that implements `http.FileSystem` interface (the same as what vfsgen outputs directly).
+-	[`becky`](https://github.com/tv42/becky) - Embeds assets as string literals in Go source.
+-	[`statik`](https://github.com/rakyll/statik) - Embeds a directory of static files to be accessed via `http.FileSystem` interface (sounds very similar to vfsgen); implementation sourced from from [camlistore](https://camlistore.org).
+-	[`go.rice`](https://github.com/GeertJohan/go.rice) - Makes working with resources such as html, js, css, images and templates very easy.
+
 Attribution
 -----------
 

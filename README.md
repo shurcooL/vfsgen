@@ -87,7 +87,7 @@ It strives to be the best in its class in terms of code quality and efficiency o
 
 ### Alternatives
 
--	[`go-bindata`](https://github.com/jteeuwen/go-bindata) - Reads from disk, generates Go code that provides access to data via a [custom interface](https://github.com/jteeuwen/go-bindata#accessing-an-asset).
+-	[`go-bindata`](https://github.com/jteeuwen/go-bindata) - Reads from disk, generates Go code that provides access to data via a [custom API](https://github.com/jteeuwen/go-bindata#accessing-an-asset).
 -	[`go-bindata-assetfs`](https://github.com/elazarl/go-bindata-assetfs) - Takes output of go-bindata and provides a wrapper that implements `http.FileSystem` interface (the same as what vfsgen outputs directly).
 -	[`becky`](https://github.com/tv42/becky) - Embeds assets as string literals in Go source.
 -	[`statik`](https://github.com/rakyll/statik) - Embeds a directory of static files to be accessed via `http.FileSystem` interface (sounds very similar to vfsgen); implementation sourced from [camlistore](https://camlistore.org).

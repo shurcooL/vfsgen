@@ -15,11 +15,7 @@ import (
 func Example() {
 	var fs http.FileSystem = http.Dir("assets")
 
-	config := vfsgen.Config{
-		Input: fs,
-	}
-
-	err := vfsgen.Generate(config)
+	err := vfsgen.Generate(fs, vfsgen.Options{})
 	if err != nil {
 		log.Fatalln(err)
 	}

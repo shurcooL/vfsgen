@@ -22,13 +22,10 @@ func main() {
 		//"folder-empty/":                  "",
 	}))
 
-	config := vfsgen.Config{
-		Input:   fs,
-		Package: "test_test",
-		Output:  "test_vfsdata_test.go",
-	}
-
-	err := vfsgen.Generate(config)
+	err := vfsgen.Generate(fs, vfsgen.Options{
+		Filename: "test_vfsdata_test.go",
+		Package:  "test_test",
+	})
 	if err != nil {
 		log.Fatalln(err)
 	}

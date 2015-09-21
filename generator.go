@@ -16,30 +16,25 @@ import (
 	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
 )
 
-// Generate reads assets from an input directory, converts them
-// to Go code and writes new files to the output specified
-// in the given configuration.
-func Generate(c Config) error {
-	// Ensure our configuration has sane values.
-	err := c.validate()
-	if err != nil {
-		return err
-	}
+// Generate Go code that statically implements input filesystem,
+// write the output to a file specified in opt.
+func Generate(input http.FileSystem, opt Options) error {
+	opt.fillMissing()
 
 	// Create output file.
-	f, err := os.Create(c.Output)
+	f, err := os.Create(opt.Filename)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	err = t.ExecuteTemplate(f, "Header", c)
+	err = t.ExecuteTemplate(f, "Header", opt)
 	if err != nil {
 		return err
 	}
 
 	var toc toc
-	err = findAndWriteFiles(f, c.Input, &toc)
+	err = findAndWriteFiles(f, input, &toc)
 	if err != nil {
 		return err
 	}
@@ -258,8 +253,8 @@ import (
 	"time"
 )
 
-// ⦗⦗.OutputName⦘⦘ statically implements the virtual filesystem given to vfsgen as input.
-var ⦗⦗.OutputName⦘⦘ = func() http.FileSystem {
+// ⦗⦗.VariableName⦘⦘ statically implements the virtual filesystem given to vfsgen as input.
+var ⦗⦗.VariableName⦘⦘ = func() http.FileSystem {
 	mustUnmarshalTextTime := func(text string) time.Time {
 		var t time.Time
 		err := t.UnmarshalText([]byte(text))

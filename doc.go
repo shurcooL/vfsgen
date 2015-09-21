@@ -9,7 +9,7 @@ Features:
 
 -	Uses gzip compression internally (selectively, only for files that compress well).
 
-	-	Enables direct access to internal gzip compressed bytes via an optional interface.
+-	Enables direct access to internal gzip compressed bytes via an optional interface.
 
 -	Outputs gofmt-compatible .go code.
 */

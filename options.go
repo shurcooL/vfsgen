@@ -1,11 +1,14 @@
 package vfsgen
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Options specifies options for vfsgen code generation.
 type Options struct {
-	// Filename is the output Go file filename (including extension) for the generated code.
-	// If left empty, it defaults to "{{.VariableName}}_vfsdata.go".
+	// Filename of the generated Go code output (including extension).
+	// If left empty, it defaults to "{{toLower .VariableName}}_vfsdata.go".
 	Filename string
 
 	// PackageName is the name of the package in the generated code.
@@ -30,6 +33,6 @@ func (opt *Options) fillMissing() {
 		opt.VariableName = "assets"
 	}
 	if opt.Filename == "" {
-		opt.Filename = fmt.Sprintf("%s_vfsdata.go", opt.VariableName)
+		opt.Filename = fmt.Sprintf("%s_vfsdata.go", strings.ToLower(opt.VariableName))
 	}
 }

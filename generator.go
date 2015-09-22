@@ -13,7 +13,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/shurcooL/go/vfs/httpfs/vfsutil"
+	"github.com/shurcooL/httpfs/vfsutil"
 )
 
 // Generate Go code that statically implements input filesystem,

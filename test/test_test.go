@@ -323,3 +323,13 @@ func ExampleNotExist() {
 	// os.IsNotExist: true
 	// open /does-not-exist: file does not exist
 }
+
+func ExamplePathCleaned() {
+	var fs http.FileSystem = assets
+
+	_, err := fs.Open("//folderB/../folderA/file1.txt")
+	fmt.Println(err)
+
+	// Output:
+	// <nil>
+}

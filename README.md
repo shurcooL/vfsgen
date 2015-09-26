@@ -57,19 +57,21 @@ See [shurcooL/Go-Package-Store#38](https://github.com/shurcooL/Go-Package-Store/
 
 ### Additional Embedded Information
 
-All compressed files implement this interface for efficient direct access to the internal compressed bytes:
+All compressed files implement `vfsgen.GzipByter` for efficient direct access to the internal compressed bytes:
 
 ```Go
-interface {
+// GzipByter is implemented by compressed files for
+// efficient direct access to the internal compressed bytes.
+type GzipByter interface {
 	// GzipBytes returns gzip compressed contents of the file.
 	GzipBytes() []byte
 }
 ```
 
-Files that have been determined to not be worth gzip compressing (their compressed size is larger than original) implement this interface:
+Files that have been determined to not be worth gzip compressing (their compressed size is larger than original) implement `vfsgen.NotWorthGzipCompressing`:
 
 ```Go
-interface {
+type NotWorthGzipCompressing interface {
 	// NotWorthGzipCompressing indicates the file is not worth gzip compressing.
 	NotWorthGzipCompressing()
 }

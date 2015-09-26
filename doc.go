@@ -11,6 +11,6 @@ Features:
 
 -	Enables direct access to internal gzip compressed bytes via an optional interface.
 
--	Outputs gofmt-compatible .go code.
+-	Outputs `gofmt`ed Go code.
 */
 package vfsgen

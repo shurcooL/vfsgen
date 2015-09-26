@@ -49,7 +49,7 @@ http.Handle("/assets/", http.FileServer(assets))
 
 ### `go generate` Usage
 
-vfsgen is great to use with go generate directives. The code above can go in an assets_gen.go file, which can then be invoked via "//go:generate go run assets_gen.go". The input virtual filesystem can read directly from disk, or it can be something more involved.
+vfsgen is great to use with go generate directives. The code above can go in an assets_gen.go file, which can then be invoked via "//go:generate go run assets_gen.go". The input virtual filesystem can read directly from disk, or it can be more involved.
 
 By using build tags, you can create a development mode where assets are loaded directly from disk via `http.Dir`, but then statically implemented for final releases.
 

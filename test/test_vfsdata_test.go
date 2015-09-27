@@ -36,12 +36,12 @@ var assets = func() http.FileSystem {
 		"/folderA/file1.txt": &_vfsgen_fileInfo{
 			name:    "file1.txt",
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
-			content: []byte("\x53\x74\x75\x66\x66\x2e"),
+			content: []byte("\x53\x74\x75\x66\x66\x20\x69\x6e\x20\x2f\x66\x6f\x6c\x64\x65\x72\x41\x2f\x66\x69\x6c\x65\x31\x2e\x74\x78\x74\x2e"),
 		},
 		"/folderA/file2.txt": &_vfsgen_fileInfo{
 			name:    "file2.txt",
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
-			content: []byte("\x53\x74\x75\x66\x66\x2e"),
+			content: []byte("\x53\x74\x75\x66\x66\x20\x69\x6e\x20\x2f\x66\x6f\x6c\x64\x65\x72\x41\x2f\x66\x69\x6c\x65\x32\x2e\x74\x78\x74\x2e"),
 		},
 		"/folderB": &_vfsgen_dirInfo{
 			name:    "folderB",
@@ -54,7 +54,7 @@ var assets = func() http.FileSystem {
 		"/folderB/folderC/file3.txt": &_vfsgen_fileInfo{
 			name:    "file3.txt",
 			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
-			content: []byte("\x53\x74\x75\x66\x66\x2e"),
+			content: []byte("\x53\x74\x75\x66\x66\x20\x69\x6e\x20\x2f\x66\x6f\x6c\x64\x65\x72\x42\x2f\x66\x6f\x6c\x64\x65\x72\x43\x2f\x66\x69\x6c\x65\x33\x2e\x74\x78\x74\x2e"),
 		},
 		"/not-worth-compressing-file.txt": &_vfsgen_fileInfo{
 			name:    "not-worth-compressing-file.txt",

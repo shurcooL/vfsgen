@@ -42,13 +42,13 @@ func ExampleBasic() {
 	// /
 	// /folderA
 	// /folderA/file1.txt
-	// "Stuff." <nil>
+	// "Stuff in /folderA/file1.txt." <nil>
 	// /folderA/file2.txt
-	// "Stuff." <nil>
+	// "Stuff in /folderA/file2.txt." <nil>
 	// /folderB
 	// /folderB/folderC
 	// /folderB/folderC/file3.txt
-	// "Stuff." <nil>
+	// "Stuff in /folderB/folderC/file3.txt." <nil>
 	// /not-worth-compressing-file.txt
 	// "Its normal contents are here." <nil>
 	// /sample-file.txt
@@ -106,15 +106,15 @@ func ExampleCompressed() {
 	// /
 	// /folderA
 	// /folderA/file1.txt
-	// "Stuff." <nil>
+	// "Stuff in /folderA/file1.txt." <nil>
 	// <not compressed>
 	// /folderA/file2.txt
-	// "Stuff." <nil>
+	// "Stuff in /folderA/file2.txt." <nil>
 	// <not compressed>
 	// /folderB
 	// /folderB/folderC
 	// /folderB/folderC/file3.txt
-	// "Stuff." <nil>
+	// "Stuff in /folderB/folderC/file3.txt." <nil>
 	// <not compressed>
 	// /not-worth-compressing-file.txt
 	// "Its normal contents are here." <nil>
@@ -339,6 +339,10 @@ func ExamplePathCleaned() {
 	}
 	fmt.Println(fi.Name())
 
+	b, err := ioutil.ReadAll(f)
+	fmt.Printf("%q %v\n", string(b), err)
+
 	// Output:
 	// file1.txt
+	// "Stuff in /folderA/file1.txt." <nil>
 }

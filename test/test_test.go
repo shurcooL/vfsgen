@@ -328,13 +328,17 @@ func ExamplePathCleaned() {
 	var fs http.FileSystem = assets
 
 	f, err := fs.Open("//folderB/../folderA/file1.txt")
-	fmt.Println(err)
-
-	if fi, err := f.Stat(); err == nil {
-		fmt.Println(fi.Name())
+	if err != nil {
+		panic(err)
 	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(fi.Name())
 
 	// Output:
-	// <nil>
 	// file1.txt
 }

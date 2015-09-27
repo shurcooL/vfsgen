@@ -327,9 +327,14 @@ func ExampleNotExist() {
 func ExamplePathCleaned() {
 	var fs http.FileSystem = assets
 
-	_, err := fs.Open("//folderB/../folderA/file1.txt")
+	f, err := fs.Open("//folderB/../folderA/file1.txt")
 	fmt.Println(err)
+
+	if fi, err := f.Stat(); err == nil {
+		fmt.Println(fi.Name())
+	}
 
 	// Output:
 	// <nil>
+	// file1.txt
 }

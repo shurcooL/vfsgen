@@ -30,7 +30,7 @@ func (opt *Options) fillMissing() {
 		opt.PackageName = "main"
 	}
 	if opt.VariableName == "" {
-		opt.VariableName = "assets"
+		opt.VariableName = "Assets"
 	}
 	if opt.Filename == "" {
 		opt.Filename = fmt.Sprintf("%s_vfsdata.go", strings.ToLower(opt.VariableName))

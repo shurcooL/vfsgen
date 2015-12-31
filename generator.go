@@ -407,6 +407,8 @@ func (f *_vfsgen_compressedFile) Seek(offset int64, whence int) (int64, error) {
 		f.seekPos += offset
 	case os.SEEK_END:
 		f.seekPos = f._vfsgen_compressedFileInfo.uncompressedSize + offset
+	default:
+		panic(fmt.Errorf("invalid whence value: %v", whence))
 	}
 	return f.seekPos, nil
 }

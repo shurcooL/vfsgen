@@ -417,7 +417,7 @@ func (f *_vfsgen_compressedFile) Close() error {
 }
 {{else}}
 // We already imported "compress/gzip", but ended up not using it. Avoid unused import error.
-var _ = gzip.Reader
+var _ = gzip.Reader{}
 {{end}}{{if .HasFile}}
 // _vfsgen_fileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
 type _vfsgen_fileInfo struct {

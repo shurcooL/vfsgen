@@ -14,7 +14,7 @@ import (
 //go:generate go run test_gen.go
 
 // Basic functionality test.
-func ExampleBasic() {
+func Example_basic() {
 	var fs http.FileSystem = assets
 
 	walkFn := func(path string, fi os.FileInfo, err error) error {
@@ -63,7 +63,7 @@ type notWorthGzipCompressing interface {
 	NotWorthGzipCompressing()
 }
 
-func ExampleCompressed() {
+func Example_compressed() {
 	// Compressed file system.
 	var fs http.FileSystem = assets
 
@@ -124,7 +124,7 @@ func ExampleCompressed() {
 	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x11\x10\x00\x00\xff\xff\xe7G\x81:\xbd\x00\x00\x00"
 }
 
-func ExampleReadTwoOpenedCompressedFiles() {
+func Example_readTwoOpenedCompressedFiles() {
 	var fs http.FileSystem = assets
 
 	f0, err := fs.Open("/sample-file.txt")
@@ -153,7 +153,7 @@ func ExampleReadTwoOpenedCompressedFiles() {
 	// This fileThis file
 }
 
-func ExampleReadTwoOpenedUncompressedFiles() {
+func Example_readTwoOpenedUncompressedFiles() {
 	var fs http.FileSystem = assets
 
 	f0, err := fs.Open("/not-worth-compressing-file.txt")
@@ -182,7 +182,7 @@ func ExampleReadTwoOpenedUncompressedFiles() {
 	// Its normaIts norma
 }
 
-func ExampleModTime() {
+func Example_modTime() {
 	var fs http.FileSystem = assets
 
 	f, err := fs.Open("/sample-file.txt")
@@ -202,7 +202,7 @@ func ExampleModTime() {
 	// 0001-01-01 00:00:00 +0000 UTC
 }
 
-func ExampleSeek() {
+func Example_seek() {
 	var fs http.FileSystem = assets
 
 	f, err := fs.Open("/sample-file.txt")
@@ -259,7 +259,7 @@ func (fis fisStringer) String() string {
 	return s + "]"
 }
 
-func ExampleSeekDir1() {
+func Example_seekDir1() {
 	var fs http.FileSystem = assets
 
 	f, err := fs.Open("/")
@@ -275,7 +275,7 @@ func ExampleSeekDir1() {
 	// [ folderA folderB not-worth-compressing-file.txt sample-file.txt ] <nil>
 }
 
-func ExampleSeekDir2() {
+func Example_seekDir2() {
 	var fs http.FileSystem = assets
 
 	f, err := fs.Open("/")
@@ -312,7 +312,7 @@ func ExampleSeekDir2() {
 	// [ ] EOF
 }
 
-func ExampleNotExist() {
+func Example_notExist() {
 	var fs http.FileSystem = assets
 
 	_, err := fs.Open("/does-not-exist")
@@ -324,7 +324,7 @@ func ExampleNotExist() {
 	// open /does-not-exist: file does not exist
 }
 
-func ExamplePathCleaned() {
+func Example_pathCleaned() {
 	var fs http.FileSystem = assets
 
 	f, err := fs.Open("//folderB/../folderA/file1.txt")

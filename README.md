@@ -1,7 +1,7 @@
 # vfsgen [![Build Status](https://travis-ci.org/shurcooL/vfsgen.svg?branch=master)](https://travis-ci.org/shurcooL/vfsgen) [![GoDoc](https://godoc.org/github.com/shurcooL/vfsgen?status.svg)](https://godoc.org/github.com/shurcooL/vfsgen)
 
-Package vfsgen takes an input http.FileSystem (likely at `go generate` time) and
-generates Go code that statically implements the given http.FileSystem.
+Package vfsgen takes an http.FileSystem (likely at `go generate` time) and
+generates Go code that statically implements the provided http.FileSystem.
 
 Features:
 

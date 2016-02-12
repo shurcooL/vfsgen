@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// assets statically implements the virtual filesystem given to vfsgen as input.
+// assets statically implements the virtual filesystem provided to vfsgen.
 var assets = func() http.FileSystem {
 	mustUnmarshalTextTime := func(text string) time.Time {
 		var t time.Time

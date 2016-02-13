@@ -11,10 +11,10 @@ type commentWriter struct {
 }
 
 func (cw *commentWriter) Write(p []byte) (n int, err error) {
-	for i, c := range p {
-		if c == '\n' {
+	for i, b := range p {
+		if b == '\n' {
 			if !cw.wroteComment {
-				_, err := cw.Writer.Write([]byte("//"))
+				_, err = cw.Writer.Write([]byte("//"))
 				if err != nil {
 					return n, err
 				}
@@ -22,21 +22,18 @@ func (cw *commentWriter) Write(p []byte) (n int, err error) {
 			cw.wroteComment = false
 		} else {
 			if !cw.wroteComment {
-				_, err := cw.Writer.Write([]byte("// "))
+				_, err = cw.Writer.Write([]byte("// "))
 				if err != nil {
 					return n, err
 				}
 				cw.wroteComment = true
 			}
 		}
-		_, err := cw.Writer.Write(p[i : i+1])
+		_, err = cw.Writer.Write(p[i : i+1])
 		if err != nil {
 			return n, err
 		}
 		n++
-	}
-	if n != len(p) {
-		return n, io.ErrShortWrite
 	}
 	return len(p), nil
 }

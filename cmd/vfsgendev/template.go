@@ -12,8 +12,8 @@ import (
 
 func main() {
 	err := vfsgen.Generate({{.PackageName}}.{{.VariableName}}, vfsgen.Options{
-		PackageName:  {{.PackageName | quote}},{{with .BuildTags}}
-		BuildTags:    {{. | quote}},{{end}}
+		PackageName:  {{.PackageName | quote}},
+		BuildTags:    {{.BuildTags | quote}},
 		VariableName: {{.VariableName | quote}},
 	})
 	if err != nil {

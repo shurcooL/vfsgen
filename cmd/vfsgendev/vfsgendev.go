@@ -12,9 +12,7 @@ import (
 
 const (
 	sourceTags = "dev"
-
-	outputFilename = "data_generate.go"
-	outputTags     = "!dev"
+	outputTags = "!dev"
 )
 
 var (

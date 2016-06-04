@@ -116,7 +116,9 @@ vfsgendev accesses the source variable using "dev" build tag, and generates an o
 All compressed files implement this interface for efficient direct access to the internal compressed bytes:
 
 ```Go
-interface {
+// GzipByter is implemented by compressed files for
+// efficient direct access to the internal compressed bytes.
+type GzipByter interface {
 	// GzipBytes returns gzip compressed contents of the file.
 	GzipBytes() []byte
 }
@@ -125,8 +127,11 @@ interface {
 Files that have been determined to not be worth gzip compressing (their compressed size is larger than original) implement this interface:
 
 ```Go
-interface {
-	// NotWorthGzipCompressing indicates the file is not worth gzip compressing.
+// NotWorthGzipCompressing is implemented by files that were determined
+// not to be worth gzip compressing (the file size did not decrease as a result).
+type NotWorthGzipCompressing interface {
+	// NotWorthGzipCompressing is a noop. It's implemented in order to indicate
+	// the file is not worth gzip compressing.
 	NotWorthGzipCompressing()
 }
 ```

@@ -240,7 +240,7 @@ var t = template.Must(template.New("").Funcs(template.FuncMap{
 	},
 	"comment": func(s string) (string, error) {
 		var buf bytes.Buffer
-		cw := &commentWriter{Writer: &buf}
+		cw := &commentWriter{W: &buf}
 		_, err := io.WriteString(cw, s)
 		return buf.String(), err
 	},

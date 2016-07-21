@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/shurcooL/httpfs/vfsutil"
+	"github.com/shurcooL/httpgzip"
 )
 
 //go:generate go run test_gen.go
@@ -55,14 +56,6 @@ func Example_basic() {
 	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah!" <nil>
 }
 
-type gzipByter interface {
-	GzipBytes() []byte
-}
-
-type notWorthGzipCompressing interface {
-	NotWorthGzipCompressing()
-}
-
 func Example_compressed() {
 	// Compressed file system.
 	var fs http.FileSystem = assets
@@ -88,7 +81,7 @@ func Example_compressed() {
 		b, err := ioutil.ReadAll(f)
 		fmt.Printf("%q %v\n", string(b), err)
 
-		if gzipFile, ok := f.(gzipByter); ok {
+		if gzipFile, ok := f.(httpgzip.GzipByter); ok {
 			b := gzipFile.GzipBytes()
 			fmt.Printf("%q\n", string(b))
 		} else {
@@ -132,13 +125,13 @@ func Example_readTwoOpenedCompressedFiles() {
 		panic(err)
 	}
 	defer f0.Close()
-	_ = f0.(gzipByter)
+	_ = f0.(httpgzip.GzipByter)
 	f1, err := fs.Open("/sample-file.txt")
 	if err != nil {
 		panic(err)
 	}
 	defer f1.Close()
-	_ = f1.(gzipByter)
+	_ = f1.(httpgzip.GzipByter)
 
 	_, err = io.CopyN(os.Stdout, f0, 9)
 	if err != nil {
@@ -161,13 +154,13 @@ func Example_readTwoOpenedUncompressedFiles() {
 		panic(err)
 	}
 	defer f0.Close()
-	_ = f0.(notWorthGzipCompressing)
+	_ = f0.(httpgzip.NotWorthGzipCompressing)
 	f1, err := fs.Open("/not-worth-compressing-file.txt")
 	if err != nil {
 		panic(err)
 	}
 	defer f1.Close()
-	_ = f1.(notWorthGzipCompressing)
+	_ = f1.(httpgzip.NotWorthGzipCompressing)
 
 	_, err = io.CopyN(os.Stdout, f0, 9)
 	if err != nil {

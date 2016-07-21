@@ -113,7 +113,7 @@ vfsgendev accesses the source variable using "dev" build tag, and generates an o
 
 ### Additional Embedded Information
 
-All compressed files implement this interface for efficient direct access to the internal compressed bytes:
+All compressed files implement [`httpgzip.GzipByter` interface](https://godoc.org/github.com/shurcooL/httpgzip#GzipByter) for efficient direct access to the internal compressed bytes:
 
 ```Go
 // GzipByter is implemented by compressed files for
@@ -124,7 +124,7 @@ type GzipByter interface {
 }
 ```
 
-Files that have been determined to not be worth gzip compressing (their compressed size is larger than original) implement this interface:
+Files that have been determined to not be worth gzip compressing (their compressed size is larger than original) implement [`httpgzip.NotWorthGzipCompressing` interface](https://godoc.org/github.com/shurcooL/httpgzip#NotWorthGzipCompressing):
 
 ```Go
 // NotWorthGzipCompressing is implemented by files that were determined

@@ -33,3 +33,13 @@ func (c *commentWriter) Write(p []byte) (int, error) {
 	}
 	return len(p), nil
 }
+
+func (c *commentWriter) Close() error {
+	if !c.wroteSlashes {
+		if _, err := io.WriteString(c.W, "//"); err != nil {
+			return err
+		}
+		c.wroteSlashes = true
+	}
+	return nil
+}

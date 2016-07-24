@@ -12,9 +12,10 @@ import (
 )
 
 type source struct {
-	ImportPath   string
-	PackageName  string
-	VariableName string
+	ImportPath      string
+	PackageName     string
+	VariableName    string
+	VariableComment string
 }
 
 var errInvalidFormat = errors.New("invalid format")
@@ -46,11 +47,23 @@ func parseSourceFlag(sourceFlag string) (source, error) {
 	if err != nil {
 		return source{}, fmt.Errorf("can't import package %q: %v", importPath, err)
 	}
+	dpkg, err := docPackage(bpkg)
+	if err != nil {
+		return source{}, fmt.Errorf("can't get godoc of package %q: %v", importPath, err)
+	}
+	var variableComment string
+	for _, v := range dpkg.Vars {
+		if len(v.Names) == 1 && v.Names[0] == variableName {
+			variableComment = strings.TrimSuffix(v.Doc, "\n")
+			break
+		}
+	}
 
 	return source{
-		ImportPath:   bpkg.ImportPath,
-		PackageName:  bpkg.Name,
-		VariableName: variableName,
+		ImportPath:      bpkg.ImportPath,
+		PackageName:     bpkg.Name,
+		VariableName:    variableName,
+		VariableComment: variableComment,
 	}, nil
 }
 

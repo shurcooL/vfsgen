@@ -155,6 +155,7 @@ It strives to be the best in its class in terms of code quality and efficiency o
 -	[`statik`](https://github.com/rakyll/statik) - Embeds a directory of static files to be accessed via `http.FileSystem` interface (sounds very similar to vfsgen); implementation sourced from [camlistore](https://camlistore.org).
 -	[`go.rice`](https://github.com/GeertJohan/go.rice) - Makes working with resources such as HTML, JS, CSS, images and templates very easy.
 -	[`esc`](https://github.com/mjibson/esc) - Embeds files into Go programs and provides `http.FileSystem` interfaces to them.
+-	[`staticfiles`](https://github.com/bouk/staticfiles) - Allows you to embed a directory of files into your Go binary.
 
 Attribution
 -----------

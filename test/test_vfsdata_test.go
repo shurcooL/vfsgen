@@ -182,11 +182,11 @@ func (f *_vfsgen_compressedFile) Read(p []byte) (n int, err error) {
 }
 func (f *_vfsgen_compressedFile) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
-	case os.SEEK_SET:
+	case io.SeekStart:
 		f.seekPos = 0 + offset
-	case os.SEEK_CUR:
+	case io.SeekCurrent:
 		f.seekPos += offset
-	case os.SEEK_END:
+	case io.SeekEnd:
 		f.seekPos = f._vfsgen_compressedFileInfo.uncompressedSize + offset
 	default:
 		panic(fmt.Errorf("invalid whence value: %v", whence))
@@ -255,7 +255,7 @@ type _vfsgen_dir struct {
 }
 
 func (d *_vfsgen_dir) Seek(offset int64, whence int) (int64, error) {
-	if offset == 0 && whence == os.SEEK_SET {
+	if offset == 0 && whence == io.SeekStart {
 		d.pos = 0
 		return 0, nil
 	}

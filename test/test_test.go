@@ -208,7 +208,7 @@ func Example_seek() {
 	if err != nil {
 		panic(err)
 	}
-	_, err = f.Seek(22, os.SEEK_CUR)
+	_, err = f.Seek(22, io.SeekCurrent)
 	if err != nil {
 		panic(err)
 	}
@@ -217,7 +217,7 @@ func Example_seek() {
 		panic(err)
 	}
 	fmt.Print("...")
-	_, err = f.Seek(-4, os.SEEK_END)
+	_, err = f.Seek(-4, io.SeekEnd)
 	if err != nil {
 		panic(err)
 	}
@@ -225,11 +225,11 @@ func Example_seek() {
 	if err != nil {
 		panic(err)
 	}
-	_, err = f.Seek(3, os.SEEK_SET)
+	_, err = f.Seek(3, io.SeekStart)
 	if err != nil {
 		panic(err)
 	}
-	_, err = f.Seek(1, os.SEEK_CUR)
+	_, err = f.Seek(1, io.SeekCurrent)
 	if err != nil {
 		panic(err)
 	}
@@ -281,11 +281,11 @@ func Example_seekDir2() {
 	fmt.Println(fisStringer(fis), err)
 	fis, err = f.Readdir(1)
 	fmt.Println(fisStringer(fis), err)
-	_, err = f.Seek(0, os.SEEK_SET)
+	_, err = f.Seek(0, io.SeekStart)
 	fmt.Println(err)
 	fis, err = f.Readdir(2)
 	fmt.Println(fisStringer(fis), err)
-	_, err = f.Seek(0, os.SEEK_SET)
+	_, err = f.Seek(0, io.SeekStart)
 	fmt.Println(err)
 	fis, err = f.Readdir(1)
 	fmt.Println(fisStringer(fis), err)

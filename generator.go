@@ -311,7 +311,6 @@ var {{.VariableName}} = func() http.FileSystem {
 
 
 {{define "DirEntries"}}	}
-
 {{range .}}{{if .Entries}}	fs[{{quote .Path}}].(*vfsgen۰DirInfo).entries = []os.FileInfo{{"{"}}{{range .Entries}}
 		fs[{{quote .}}].(os.FileInfo),{{end}}
 	}

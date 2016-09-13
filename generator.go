@@ -428,8 +428,9 @@ func (f *vfsgen۰CompressedFile) Close() error {
 	return f.gr.Close()
 }
 {{else}}
-// We already imported "compress/gzip", but ended up not using it. Avoid unused import error.
+// We already imported "compress/gzip" and "io/ioutil", but ended up not using them. Avoid unused import error.
 var _ = gzip.Reader{}
+var _ = ioutil.Discard
 {{end}}{{if .HasFile}}
 // vfsgen۰FileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
 type vfsgen۰FileInfo struct {
@@ -461,6 +462,9 @@ type vfsgen۰File struct {
 func (f *vfsgen۰File) Close() error {
 	return nil
 }
+{{else}}
+// We already imported "bytes", but ended up not using it. Avoid unused import error.
+var _ = bytes.Reader{}
 {{end}}
 // vfsgen۰DirInfo is a static definition of a directory.
 type vfsgen۰DirInfo struct {

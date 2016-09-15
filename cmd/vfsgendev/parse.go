@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -18,8 +17,6 @@ type source struct {
 	VariableComment string
 }
 
-var errInvalidFormat = errors.New("invalid format")
-
 // parseSourceFlag parses the "-source" flag. It must have "import/path".VariableName format.
 func parseSourceFlag(sourceFlag string) (source, error) {
 	// Parse sourceFlag as a Go expression, albeit a strange one:
@@ -28,11 +25,11 @@ func parseSourceFlag(sourceFlag string) (source, error) {
 	//
 	e, err := parser.ParseExpr(sourceFlag)
 	if err != nil {
-		return source{}, errInvalidFormat
+		return source{}, fmt.Errorf("invalid format")
 	}
 	se, ok := e.(*ast.SelectorExpr)
 	if !ok {
-		return source{}, errInvalidFormat
+		return source{}, fmt.Errorf("invalid format")
 	}
 	importPath, err := stringValue(se.X)
 	if err != nil {
@@ -71,10 +68,10 @@ func parseSourceFlag(sourceFlag string) (source, error) {
 func stringValue(e ast.Expr) (string, error) {
 	lit, ok := e.(*ast.BasicLit)
 	if !ok {
-		return "", errInvalidFormat
+		return "", fmt.Errorf("invalid format")
 	}
 	if lit.Kind != token.STRING {
-		return "", errInvalidFormat
+		return "", fmt.Errorf("invalid format")
 	}
 	return strconv.Unquote(lit.Value)
 }

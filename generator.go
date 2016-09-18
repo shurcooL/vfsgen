@@ -56,11 +56,7 @@ func Generate(input http.FileSystem, opt Options) error {
 		return err
 	}
 	err = f.Truncate(cur)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 type toc struct {
@@ -162,11 +158,7 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 	}
 
 	err := vfsutil.WalkFiles(fs, "/", walkFn)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // readDirPaths reads the directory named by dirname and returns
@@ -205,10 +197,7 @@ func writeCompressedFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
 		return errCompressedNotSmaller
 	}
 	err = t.ExecuteTemplate(w, "CompressedFileInfo-After", file)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 var errCompressedNotSmaller = errors.New("compressed file is not smaller than original")
@@ -225,10 +214,7 @@ func writeFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
 		return err
 	}
 	err = t.ExecuteTemplate(w, "FileInfo-After", file)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 var t = template.Must(template.New("").Funcs(template.FuncMap{

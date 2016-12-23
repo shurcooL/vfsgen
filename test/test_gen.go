@@ -23,8 +23,9 @@ func main() {
 	}))
 
 	err := vfsgen.Generate(fs, vfsgen.Options{
-		Filename:    "test_vfsdata_test.go",
-		PackageName: "test_test",
+		DataFilename:   "test_vfsdata_test.go",
+		CommonFilename: "vfsgencommon_test.go",
+		PackageName:    "test_test",
 	})
 	if err != nil {
 		log.Fatalln(err)

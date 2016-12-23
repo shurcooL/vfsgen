@@ -79,20 +79,22 @@ func TestGenerate_buildAndGofmt(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filename := filepath.Join(tempDir, test.filename)
+		dataFilename := filepath.Join(tempDir, test.filename)
+		commonFilename := filepath.Join(tempDir, "vfsgencommon.go")
 
 		err = vfsgen.Generate(test.fs, vfsgen.Options{
-			Filename:    filename,
-			PackageName: "test",
+			DataFilename:   dataFilename,
+			CommonFilename: commonFilename,
+			PackageName:    "test",
 		})
 		if err != nil {
 			t.Fatalf("vfsgen.Generate() failed: %v", err)
 		}
 
-		if out, err := exec.Command("go", "build", filename).CombinedOutput(); err != nil {
+		if out, err := exec.Command("go", "build", dataFilename, commonFilename).CombinedOutput(); err != nil {
 			t.Errorf("err: %v\nout: %s", err, out)
 		}
-		if out, err := exec.Command("gofmt", "-d", "-s", filename).Output(); err != nil || len(out) != 0 {
+		if out, err := exec.Command("gofmt", "-d", "-s", dataFilename, commonFilename).Output(); err != nil || len(out) != 0 {
 			t.Errorf("gofmt issue\nerr: %v\nout: %s", err, out)
 		}
 	}

@@ -7,9 +7,13 @@ import (
 
 // Options for vfsgen code generation.
 type Options struct {
-	// Filename of the generated Go code output (including extension).
+	// DataFilename is the filename of the generated VFS data Go code (including extension).
 	// If left empty, it defaults to "{{toLower .VariableName}}_vfsdata.go".
-	Filename string
+	DataFilename string
+
+	// CommonFilename is the filename of the generated common vfsgen Go code (including extension).
+	// If left empty, it defaults to "vfsgencommon.go".
+	CommonFilename string
 
 	// PackageName is the name of the package in the generated code.
 	// If left empty, it defaults to "main".
@@ -33,11 +37,14 @@ func (opt *Options) fillMissing() {
 	if opt.PackageName == "" {
 		opt.PackageName = "main"
 	}
+	if opt.CommonFilename == "" {
+		opt.CommonFilename = "vfsgencommon.go"
+	}
 	if opt.VariableName == "" {
 		opt.VariableName = "assets"
 	}
-	if opt.Filename == "" {
-		opt.Filename = fmt.Sprintf("%s_vfsdata.go", strings.ToLower(opt.VariableName))
+	if opt.DataFilename == "" {
+		opt.DataFilename = fmt.Sprintf("%s_vfsdata.go", strings.ToLower(opt.VariableName))
 	}
 	if opt.VariableComment == "" {
 		opt.VariableComment = fmt.Sprintf("%s statically implements the virtual filesystem provided to vfsgen.", opt.VariableName)

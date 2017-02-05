@@ -448,7 +448,7 @@ type vfsgen۰File struct {
 func (f *vfsgen۰File) Close() error {
 	return nil
 }
-{{else}}
+{{else if not .HasCompressedFile}}
 // We already imported "bytes", but ended up not using it. Avoid unused import error.
 var _ = bytes.Reader{}
 {{end}}

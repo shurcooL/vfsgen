@@ -160,6 +160,7 @@ It strives to be the best in its class in terms of code quality and efficiency o
 -	[`esc`](https://github.com/mjibson/esc) - Embeds files into Go programs and provides `http.FileSystem` interfaces to them.
 -	[`staticfiles`](https://github.com/bouk/staticfiles) - Allows you to embed a directory of files into your Go binary.
 -	[`togo`](https://github.com/flazz/togo) - Generates a Go source file with a `[]byte` var containing the given file's contents.
+-	[`fileb0x`](https://github.com/UnnoTed/fileb0x) - Simple customizable tool to embed files in Go.
 
 Attribution
 -----------

@@ -114,7 +114,7 @@ func Example_compressed() {
 	// <not compressed>
 	// /sample-file.txt
 	// "This file compresses well. Blaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah!" <nil>
-	// "\x1f\x8b\b\x00\x00\tn\x88\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x11\x10\x00\x00\xff\xff\xe7G\x81:\xbd\x00\x00\x00"
+	// "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xff\n\xc9\xc8,VH\xcb\xccIUH\xce\xcf-(J-.N-V(O\xcd\xc9\xd1Sp\xcaI\x1c\xd4 C\x11\x10\x00\x00\xff\xff\xe7G\x81:\xbd\x00\x00\x00"
 }
 
 func Example_readTwoOpenedCompressedFiles() {

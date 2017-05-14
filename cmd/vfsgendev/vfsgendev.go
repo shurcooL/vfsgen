@@ -10,14 +10,33 @@ import (
 	"os"
 )
 
-const (
-	sourceTags = "dev"
-	outputTags = "!dev"
-)
-
 var (
 	sourceFlag = flag.String("source", "", "Specifies the http.FileSystem variable to use as source.")
 	nFlag      = flag.Bool("n", false, "Print the generated source but do not run it.")
+)
+
+func usage() {
+	fmt.Fprintln(os.Stderr, `Usage: vfsgendev [flags] -source="import/path".VariableName`)
+	flag.PrintDefaults()
+}
+
+func main() {
+	flag.Usage = usage
+	flag.Parse()
+	if flag.NArg() != 0 {
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	err := gen()
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+const (
+	sourceTags = "dev"
+	outputTags = "!dev"
 )
 
 func gen() error {
@@ -39,24 +58,4 @@ func gen() error {
 
 	err = run(buf.String(), sourceTags)
 	return err
-}
-
-func usage() {
-	fmt.Fprintln(os.Stderr, `Usage: vfsgendev [flags] -source="import/path".VariableName`)
-	flag.PrintDefaults()
-}
-
-func main() {
-	flag.Usage = usage
-	flag.Parse()
-	if flag.NArg() != 0 {
-		flag.Usage()
-		os.Exit(2)
-		return
-	}
-
-	err := gen()
-	if err != nil {
-		log.Fatalln(err)
-	}
 }

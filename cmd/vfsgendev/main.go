@@ -16,7 +16,7 @@ import (
 
 var (
 	sourceFlag = flag.String("source", "", "Specifies the http.FileSystem variable to use as source.")
-	tagFlag    = flag.String("tag", "dev", "Specifies the build tag to use for source. The output will include a negated version.")
+	tagFlag    = flag.String("tag", "dev", "Specifies a single build tag to use for source. The output will include a negated version.")
 	nFlag      = flag.Bool("n", false, "Print the generated source but do not run it.")
 )
 
@@ -32,24 +32,26 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
+	importPath, variableName, err := parseSourceFlag(*sourceFlag)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "-source flag has invalid value:", err)
+		flag.Usage()
+		os.Exit(2)
+	}
+	tag, err := parseTagFlag(*tagFlag)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "-tag flag has invalid value:", err)
+		flag.Usage()
+		os.Exit(2)
+	}
 
-	err := run()
+	err = run(importPath, variableName, tag)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func run() error {
-	tag, err := parseTagFlag(*tagFlag)
-	if err != nil {
-		return err
-	}
-
-	importPath, variableName, err := parseSourceFlag(*sourceFlag)
-	if err != nil {
-		return err
-	}
-
+func run(importPath, variableName, tag string) error {
 	bctx := build.Default
 	bctx.BuildTags = []string{tag}
 	packageName, variableComment, err := lookupNameAndComment(bctx, importPath, variableName)

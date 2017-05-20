@@ -12,15 +12,6 @@ import (
 	"strings"
 )
 
-// parseTagFlag parses the "-tag" flag value. It must be a single build tag.
-func parseTagFlag(tagFlag string) (tag string, err error) {
-	tags := strings.Fields(tagFlag)
-	if len(tags) != 1 {
-		return "", fmt.Errorf("%q is not a valid single build tag")
-	}
-	return tags[0], nil
-}
-
 // parseSourceFlag parses the "-source" flag value. It must have "import/path".VariableName format.
 func parseSourceFlag(sourceFlag string) (importPath, variableName string, err error) {
 	// Parse sourceFlag as a Go expression, albeit a strange one:
@@ -29,15 +20,15 @@ func parseSourceFlag(sourceFlag string) (importPath, variableName string, err er
 	//
 	e, err := parser.ParseExpr(sourceFlag)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid format")
+		return "", "", fmt.Errorf("invalid format, failed to parse %q as a Go expression", sourceFlag)
 	}
 	se, ok := e.(*ast.SelectorExpr)
 	if !ok {
-		return "", "", fmt.Errorf("invalid format")
+		return "", "", fmt.Errorf("invalid format, expression %v is not a selector expression but %T", e, e)
 	}
 	importPath, err = stringValue(se.X)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("invalid format, expression %v is not a properly quoted Go string: %v", se.X, err)
 	}
 	variableName = se.Sel.Name
 	return importPath, variableName, nil
@@ -47,12 +38,21 @@ func parseSourceFlag(sourceFlag string) (importPath, variableName string, err er
 func stringValue(e ast.Expr) (string, error) {
 	lit, ok := e.(*ast.BasicLit)
 	if !ok {
-		return "", fmt.Errorf("invalid format")
+		return "", fmt.Errorf("not a string, but %T", e)
 	}
 	if lit.Kind != token.STRING {
-		return "", fmt.Errorf("invalid format")
+		return "", fmt.Errorf("not a string, but %v", lit.Kind)
 	}
 	return strconv.Unquote(lit.Value)
+}
+
+// parseTagFlag parses the "-tag" flag value. It must be a single build tag.
+func parseTagFlag(tagFlag string) (tag string, err error) {
+	tags := strings.Fields(tagFlag)
+	if len(tags) != 1 {
+		return "", fmt.Errorf("%q is not a valid single build tag, but %q", tagFlag, tags)
+	}
+	return tags[0], nil
 }
 
 // lookupNameAndComment imports package using provided build context, and

@@ -6,8 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
 )
 
 var (
@@ -28,7 +31,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	err := gen()
+	err := run()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -39,7 +42,7 @@ const (
 	outputTags = "!dev"
 )
 
-func gen() error {
+func run() error {
 	source, err := parseSourceFlag(*sourceFlag)
 	if err != nil {
 		return err
@@ -56,6 +59,34 @@ func gen() error {
 		return nil
 	}
 
-	err = run(buf.String(), sourceTags)
+	err = goRun(buf.String(), sourceTags)
 	return err
+}
+
+// goRun runs Go code src with build tags.
+func goRun(src string, tags string) error {
+	// Create a temp folder.
+	tempDir, err := ioutil.TempDir("", "vfsgendev_")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := os.RemoveAll(tempDir)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "warning: error removing temp dir:", err)
+		}
+	}()
+
+	// Write the source code file.
+	tempFile := filepath.Join(tempDir, "generate.go")
+	err = ioutil.WriteFile(tempFile, []byte(src), 0600)
+	if err != nil {
+		return err
+	}
+
+	// Compile and run the program.
+	cmd := exec.Command("go", "run", "-tags="+tags, tempFile)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }

@@ -54,9 +54,9 @@ type source struct {
 }
 
 // lookupSource imports package using provided build context, and returns the
-// full import path, package name, variable name and variable comment.
+// import path, package name, variable name and variable comment.
 func lookupSource(bctx build.Context, importPath, variableName string) (source, error) {
-	bpkg, err := bctx.Import(importPath, ".", 0)
+	bpkg, err := bctx.Import(importPath, "", 0)
 	if err != nil {
 		return source{}, fmt.Errorf("can't import package %q: %v", importPath, err)
 	}

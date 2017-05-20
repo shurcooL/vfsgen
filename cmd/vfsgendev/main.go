@@ -5,12 +5,14 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/build"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 var (
@@ -43,7 +45,14 @@ const (
 )
 
 func run() error {
-	source, err := parseSourceFlag(*sourceFlag)
+	importPath, variableName, err := parseSourceFlag(*sourceFlag)
+	if err != nil {
+		return err
+	}
+
+	bctx := build.Default
+	bctx.BuildTags = strings.Fields(sourceTags)
+	source, err := lookupSource(bctx, importPath, variableName)
 	if err != nil {
 		return err
 	}

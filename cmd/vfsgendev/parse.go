@@ -55,37 +55,24 @@ func stringValue(e ast.Expr) (string, error) {
 	return strconv.Unquote(lit.Value)
 }
 
-type source struct {
-	ImportPath      string
-	PackageName     string
-	VariableName    string
-	VariableComment string
-}
-
-// lookupSource imports package using provided build context, and returns the
-// import path, package name, variable name and variable comment.
-func lookupSource(bctx build.Context, importPath, variableName string) (source, error) {
+// lookupNameAndComment imports package using provided build context, and
+// returns the package name and variable comment.
+func lookupNameAndComment(bctx build.Context, importPath, variableName string) (packageName, variableComment string, err error) {
 	bpkg, err := bctx.Import(importPath, "", 0)
 	if err != nil {
-		return source{}, fmt.Errorf("can't import package %q: %v", importPath, err)
+		return "", "", fmt.Errorf("can't import package %q: %v", importPath, err)
 	}
 	dpkg, err := docPackage(bpkg)
 	if err != nil {
-		return source{}, fmt.Errorf("can't get godoc of package %q: %v", importPath, err)
+		return "", "", fmt.Errorf("can't get godoc of package %q: %v", importPath, err)
 	}
-	var variableComment string
 	for _, v := range dpkg.Vars {
 		if len(v.Names) == 1 && v.Names[0] == variableName {
 			variableComment = strings.TrimSuffix(v.Doc, "\n")
 			break
 		}
 	}
-	return source{
-		ImportPath:      bpkg.ImportPath,
-		PackageName:     bpkg.Name,
-		VariableName:    variableName,
-		VariableComment: variableComment,
-	}, nil
+	return bpkg.Name, variableComment, nil
 }
 
 // TODO: Keep in sync or unify with github.com/shurcooL/cmd/gorepogen/docpackage.go.

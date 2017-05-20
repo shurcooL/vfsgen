@@ -52,13 +52,19 @@ func run() error {
 
 	bctx := build.Default
 	bctx.BuildTags = []string{tag}
-	source, err := lookupSource(bctx, importPath, variableName)
+	packageName, variableComment, err := lookupNameAndComment(bctx, importPath, variableName)
 	if err != nil {
 		return err
 	}
 
 	var buf bytes.Buffer
-	err = generateTemplate.Execute(&buf, data{source: source, BuildTags: "!" + tag})
+	err = generateTemplate.Execute(&buf, data{
+		ImportPath:      importPath,
+		PackageName:     packageName,
+		BuildTags:       "!" + tag,
+		VariableName:    variableName,
+		VariableComment: variableComment,
+	})
 	if err != nil {
 		return err
 	}

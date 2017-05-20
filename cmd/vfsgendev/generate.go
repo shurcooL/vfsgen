@@ -6,8 +6,11 @@ import (
 )
 
 type data struct {
-	source
-	BuildTags string
+	ImportPath      string
+	PackageName     string
+	BuildTags       string
+	VariableName    string
+	VariableComment string
 }
 
 var generateTemplate = template.Must(template.New("").Funcs(template.FuncMap{
@@ -21,11 +24,11 @@ import (
 
 	"github.com/shurcooL/vfsgen"
 
-	{{.ImportPath | quote}}
+	sourcepkg {{.ImportPath | quote}}
 )
 
 func main() {
-	err := vfsgen.Generate({{.PackageName}}.{{.VariableName}}, vfsgen.Options{
+	err := vfsgen.Generate(sourcepkg.{{.VariableName}}, vfsgen.Options{
 		PackageName:     {{.PackageName | quote}},
 		BuildTags:       {{.BuildTags | quote}},
 		VariableName:    {{.VariableName | quote}},

@@ -7,9 +7,8 @@ import (
 
 type data struct {
 	source
+	BuildTags string
 }
-
-func (data) BuildTags() string { return outputTags }
 
 var generateTemplate = template.Must(template.New("").Funcs(template.FuncMap{
 	"quote": func(s string) string {

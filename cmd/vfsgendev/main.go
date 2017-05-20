@@ -12,11 +12,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 var (
 	sourceFlag = flag.String("source", "", "Specifies the http.FileSystem variable to use as source.")
+	tagFlag    = flag.String("tag", "dev", "Specifies the build tag to use for source. The output will include a negated version.")
 	nFlag      = flag.Bool("n", false, "Print the generated source but do not run it.")
 )
 
@@ -39,26 +39,26 @@ func main() {
 	}
 }
 
-const (
-	sourceTags = "dev"
-	outputTags = "!dev"
-)
-
 func run() error {
+	tag, err := parseTagFlag(*tagFlag)
+	if err != nil {
+		return err
+	}
+
 	importPath, variableName, err := parseSourceFlag(*sourceFlag)
 	if err != nil {
 		return err
 	}
 
 	bctx := build.Default
-	bctx.BuildTags = strings.Fields(sourceTags)
+	bctx.BuildTags = []string{tag}
 	source, err := lookupSource(bctx, importPath, variableName)
 	if err != nil {
 		return err
 	}
 
 	var buf bytes.Buffer
-	err = generateTemplate.Execute(&buf, data{source: source})
+	err = generateTemplate.Execute(&buf, data{source: source, BuildTags: "!" + tag})
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func run() error {
 		return nil
 	}
 
-	err = goRun(buf.String(), sourceTags)
+	err = goRun(buf.String(), tag)
 	return err
 }
 

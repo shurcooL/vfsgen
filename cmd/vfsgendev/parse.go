@@ -12,6 +12,15 @@ import (
 	"strings"
 )
 
+// parseTagFlag parses the "-tag" flag value. It must be a single build tag.
+func parseTagFlag(tagFlag string) (tag string, err error) {
+	tags := strings.Fields(tagFlag)
+	if len(tags) != 1 {
+		return "", fmt.Errorf("%q is not a valid single build tag")
+	}
+	return tags[0], nil
+}
+
 // parseSourceFlag parses the "-source" flag value. It must have "import/path".VariableName format.
 func parseSourceFlag(sourceFlag string) (importPath, variableName string, err error) {
 	// Parse sourceFlag as a Go expression, albeit a strange one:

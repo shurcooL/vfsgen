@@ -17,7 +17,7 @@ import (
 )
 
 // This code will generate an assets_vfsdata.go file with
-// `var assets http.FileSystem = ...`
+// `var Assets http.FileSystem = ...`
 // that statically implements the contents of "assets" directory.
 //
 // vfsgen is great to use with go generate directives. This code can go in an assets_gen.go file, which can

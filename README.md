@@ -26,7 +26,7 @@ go get -u github.com/shurcooL/vfsgen
 Usage
 -----
 
-This code will generate an assets_vfsdata.go file with `var assets http.FileSystem = ...` that statically implements the contents of "assets" directory.
+This code will generate an assets_vfsdata.go file with `var Assets http.FileSystem = ...` that statically implements the contents of "assets" directory.
 
 ```Go
 var fs http.FileSystem = http.Dir("assets")
@@ -37,16 +37,16 @@ if err != nil {
 }
 ```
 
-Then, in your program, you can use `assets` as any other [`http.FileSystem`](https://godoc.org/net/http#FileSystem), for example:
+Then, in your program, you can use `Assets` as any other [`http.FileSystem`](https://godoc.org/net/http#FileSystem), for example:
 
 ```Go
-file, err := assets.Open("/some/file.txt")
+file, err := Assets.Open("/some/file.txt")
 if err != nil { ... }
 defer file.Close()
 ```
 
 ```Go
-http.Handle("/assets/", http.FileServer(assets))
+http.Handle("/assets/", http.FileServer(Assets))
 ```
 
 ### `go generate` Usage

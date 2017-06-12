@@ -75,7 +75,7 @@ func lookupNameAndComment(bctx build.Context, importPath, variableName string) (
 	return bpkg.Name, variableComment, nil
 }
 
-// TODO: Keep in sync or unify with github.com/shurcooL/cmd/gorepogen/docpackage.go.
+// TODO: Keep in sync or unify with github.com/shurcooL/cmd/gorepogen/main.go.
 // TODO: See if these can be cleaned up.
 
 func docPackage(bpkg *build.Package) (*doc.Package, error) {

@@ -14,9 +14,7 @@ type data struct {
 }
 
 var generateTemplate = template.Must(template.New("").Funcs(template.FuncMap{
-	"quote": func(s string) string {
-		return strconv.Quote(s)
-	},
+	"quote": strconv.Quote,
 }).Parse(`package main
 
 import (

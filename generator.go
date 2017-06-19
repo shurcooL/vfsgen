@@ -218,9 +218,7 @@ func writeFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
 }
 
 var t = template.Must(template.New("").Funcs(template.FuncMap{
-	"quote": func(s string) string {
-		return strconv.Quote(s)
-	},
+	"quote": strconv.Quote,
 	"quoteBytes": func(b []byte) string {
 		return strconv.Quote(string(b))
 	},

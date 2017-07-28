@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -23,6 +24,7 @@ func Generate(input http.FileSystem, opt Options) error {
 	opt.fillMissing()
 
 	// Create output file.
+	fmt.Println("writing", opt.Filename)
 	f, err := os.Create(opt.Filename)
 	if err != nil {
 		return err

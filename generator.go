@@ -208,9 +208,6 @@ func writeFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
 
 var t = template.Must(template.New("").Funcs(template.FuncMap{
 	"quote": strconv.Quote,
-	"quoteBytes": func(b []byte) string {
-		return strconv.Quote(string(b))
-	},
 	"comment": func(s string) (string, error) {
 		var buf bytes.Buffer
 		cw := &commentWriter{W: &buf}
@@ -241,15 +238,6 @@ import (
 
 {{comment .VariableComment}}
 var {{.VariableName}} = func() http.FileSystem {
-	mustUnmarshalTextTime := func(text string) time.Time {
-		var t time.Time
-		err := t.UnmarshalText([]byte(text))
-		if err != nil {
-			panic(err)
-		}
-		return t
-	}
-
 	fs := vfsgen۰FS{
 {{end}}
 
@@ -257,7 +245,7 @@ var {{.VariableName}} = func() http.FileSystem {
 
 {{define "CompressedFileInfo-Before"}}		{{quote .Path}}: &vfsgen۰CompressedFileInfo{
 			name:             {{quote .Name}},
-			modTime:          mustUnmarshalTextTime({{quoteBytes .ModTime.MarshalText}}),
+			modTime:          {{template "Time" .ModTime}},
 			uncompressedSize: {{.UncompressedSize}},
 {{/* This blank line separating compressedContent is neccessary to prevent potential gofmt issues. See issue #19. */}}
 			compressedContent: []byte("{{end}}{{define "CompressedFileInfo-After"}}"),
@@ -268,7 +256,7 @@ var {{.VariableName}} = func() http.FileSystem {
 
 {{define "FileInfo-Before"}}		{{quote .Path}}: &vfsgen۰FileInfo{
 			name:    {{quote .Name}},
-			modTime: mustUnmarshalTextTime({{quoteBytes .ModTime.MarshalText}}),
+			modTime: {{template "Time" .ModTime}},
 			content: []byte("{{end}}{{define "FileInfo-After"}}"),
 		},
 {{end}}
@@ -277,7 +265,7 @@ var {{.VariableName}} = func() http.FileSystem {
 
 {{define "DirInfo"}}		{{quote .Path}}: &vfsgen۰DirInfo{
 			name:    {{quote .Name}},
-			modTime: mustUnmarshalTextTime({{quoteBytes .ModTime.MarshalText}}),
+			modTime: {{template "Time" .ModTime}},
 		},
 {{end}}
 
@@ -484,4 +472,15 @@ func (d *vfsgen۰Dir) Readdir(count int) ([]os.FileInfo, error) {
 	d.pos += count
 	return e, nil
 }
-{{end}}`))
+{{end}}
+
+
+
+{{define "Time"}}
+{{- if .IsZero -}}
+	time.Time{}
+{{- else -}}
+	time.Date({{.Year}}, {{printf "%d" .Month}}, {{.Day}}, {{.Hour}}, {{.Minute}}, {{.Second}}, {{.Nanosecond}}, time.UTC)
+{{- end -}}
+{{end}}
+`))

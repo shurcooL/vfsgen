@@ -16,55 +16,46 @@ import (
 
 // assets statically implements the virtual filesystem provided to vfsgen.
 var assets = func() http.FileSystem {
-	mustUnmarshalTextTime := func(text string) time.Time {
-		var t time.Time
-		err := t.UnmarshalText([]byte(text))
-		if err != nil {
-			panic(err)
-		}
-		return t
-	}
-
 	fs := vfsgen۰FS{
 		"/": &vfsgen۰DirInfo{
 			name:    "/",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 		},
 		"/folderA": &vfsgen۰DirInfo{
 			name:    "folderA",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 		},
 		"/folderA/file1.txt": &vfsgen۰FileInfo{
 			name:    "file1.txt",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 			content: []byte("\x53\x74\x75\x66\x66\x20\x69\x6e\x20\x2f\x66\x6f\x6c\x64\x65\x72\x41\x2f\x66\x69\x6c\x65\x31\x2e\x74\x78\x74\x2e"),
 		},
 		"/folderA/file2.txt": &vfsgen۰FileInfo{
 			name:    "file2.txt",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 			content: []byte("\x53\x74\x75\x66\x66\x20\x69\x6e\x20\x2f\x66\x6f\x6c\x64\x65\x72\x41\x2f\x66\x69\x6c\x65\x32\x2e\x74\x78\x74\x2e"),
 		},
 		"/folderB": &vfsgen۰DirInfo{
 			name:    "folderB",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 		},
 		"/folderB/folderC": &vfsgen۰DirInfo{
 			name:    "folderC",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 		},
 		"/folderB/folderC/file3.txt": &vfsgen۰FileInfo{
 			name:    "file3.txt",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 			content: []byte("\x53\x74\x75\x66\x66\x20\x69\x6e\x20\x2f\x66\x6f\x6c\x64\x65\x72\x42\x2f\x66\x6f\x6c\x64\x65\x72\x43\x2f\x66\x69\x6c\x65\x33\x2e\x74\x78\x74\x2e"),
 		},
 		"/not-worth-compressing-file.txt": &vfsgen۰FileInfo{
 			name:    "not-worth-compressing-file.txt",
-			modTime: mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime: time.Time{},
 			content: []byte("\x49\x74\x73\x20\x6e\x6f\x72\x6d\x61\x6c\x20\x63\x6f\x6e\x74\x65\x6e\x74\x73\x20\x61\x72\x65\x20\x68\x65\x72\x65\x2e"),
 		},
 		"/sample-file.txt": &vfsgen۰CompressedFileInfo{
 			name:             "sample-file.txt",
-			modTime:          mustUnmarshalTextTime("0001-01-01T00:00:00Z"),
+			modTime:          time.Time{},
 			uncompressedSize: 189,
 
 			compressedContent: []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x0a\xc9\xc8\x2c\x56\x48\xcb\xcc\x49\x55\x48\xce\xcf\x2d\x28\x4a\x2d\x2e\x4e\x2d\x56\x28\x4f\xcd\xc9\xd1\x53\x70\xca\x49\x1c\xd4\x20\x43\x11\x10\x00\x00\xff\xff\xe7\x47\x81\x3a\xbd\x00\x00\x00"),

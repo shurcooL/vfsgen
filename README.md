@@ -62,6 +62,8 @@ For example, suppose your source filesystem is defined in a package with import 
 
 package data
 
+import "net/http"
+
 // Assets contains project assets.
 var Assets http.FileSystem = http.Dir("assets")
 ```

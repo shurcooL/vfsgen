@@ -163,6 +163,7 @@ It strives to be the best in its class in terms of code quality and efficiency o
 -	[`staticfiles`](https://github.com/bouk/staticfiles) - Allows you to embed a directory of files into your Go binary.
 -	[`togo`](https://github.com/flazz/togo) - Generates a Go source file with a `[]byte` var containing the given file's contents.
 -	[`fileb0x`](https://github.com/UnnoTed/fileb0x) - Simple customizable tool to embed files in Go.
+-	[`embedfiles`](https://github.com/leighmcculloch/embedfiles) - Simple tool for embedding files in Go code as a map.
 
 Attribution
 -----------

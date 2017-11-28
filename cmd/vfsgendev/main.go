@@ -35,12 +35,14 @@ func main() {
 	importPath, variableName, err := parseSourceFlag(*sourceFlag)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "-source flag has invalid value:", err)
+		fmt.Fprintln(os.Stderr)
 		flag.Usage()
 		os.Exit(2)
 	}
 	tag, err := parseTagFlag(*tagFlag)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "-tag flag has invalid value:", err)
+		fmt.Fprintln(os.Stderr)
 		flag.Usage()
 		os.Exit(2)
 	}

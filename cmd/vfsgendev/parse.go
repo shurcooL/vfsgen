@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/build"
 	"go/doc"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"path/filepath"
 	"strconv"
@@ -24,11 +26,11 @@ func parseSourceFlag(sourceFlag string) (importPath, variableName string, err er
 	}
 	se, ok := e.(*ast.SelectorExpr)
 	if !ok {
-		return "", "", fmt.Errorf("invalid format, expression %v is not a selector expression but %T", e, e)
+		return "", "", fmt.Errorf("invalid format, expression %v is not a selector expression but %T", sourceFlag, e)
 	}
 	importPath, err = stringValue(se.X)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid format, expression %v is not a properly quoted Go string: %v", se.X, err)
+		return "", "", fmt.Errorf("invalid format, expression %v is not a properly quoted Go string: %v", stringifyAST(se.X), err)
 	}
 	variableName = se.Sel.Name
 	return importPath, variableName, nil
@@ -73,6 +75,15 @@ func lookupNameAndComment(bctx build.Context, importPath, variableName string) (
 		}
 	}
 	return bpkg.Name, variableComment, nil
+}
+
+func stringifyAST(node interface{}) string {
+	var buf bytes.Buffer
+	err := printer.Fprint(&buf, token.NewFileSet(), node)
+	if err != nil {
+		return "printer.Fprint error: " + err.Error()
+	}
+	return buf.String()
 }
 
 // TODO: Keep in sync or unify with github.com/shurcooL/cmd/gorepogen/main.go.

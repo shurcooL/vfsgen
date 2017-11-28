@@ -15,7 +15,9 @@ type data struct {
 
 var generateTemplate = template.Must(template.New("").Funcs(template.FuncMap{
 	"quote": strconv.Quote,
-}).Parse(`package main
+}).Parse(`// +build ignore
+
+package main
 
 import (
 	"log"

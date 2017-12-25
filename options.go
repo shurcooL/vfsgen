@@ -26,6 +26,9 @@ type Options struct {
 	// VariableComment is the comment of the http.FileSystem variable in the generated code.
 	// If left empty, it defaults to "{{.VariableName}} statically implements the virtual filesystem provided to vfsgen.".
 	VariableComment string
+
+	// Whether or not the modtime of the file should be saved. Default is to save the modtime.
+	ZeroModTime bool
 }
 
 // fillMissing sets default values for mandatory options that are left empty.

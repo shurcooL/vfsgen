@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -23,41 +24,33 @@ import (
 func Generate(input http.FileSystem, opt Options) error {
 	opt.fillMissing()
 
-	// Create output file.
-	fmt.Println("writing", opt.Filename)
-	f, err := os.Create(opt.Filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+	// Use an in-memory buffer to generate the entire output.
+	buf := new(bytes.Buffer)
 
-	err = t.ExecuteTemplate(f, "Header", opt)
+	err := t.ExecuteTemplate(buf, "Header", opt)
 	if err != nil {
 		return err
 	}
 
 	var toc toc
-	err = findAndWriteFiles(f, input, &toc)
+	err = findAndWriteFiles(buf, input, &toc)
 	if err != nil {
 		return err
 	}
 
-	err = t.ExecuteTemplate(f, "DirEntries", toc.dirs)
+	err = t.ExecuteTemplate(buf, "DirEntries", toc.dirs)
 	if err != nil {
 		return err
 	}
 
-	err = t.ExecuteTemplate(f, "Trailer", toc)
+	err = t.ExecuteTemplate(buf, "Trailer", toc)
 	if err != nil {
 		return err
 	}
 
-	// Trim any potential excess.
-	cur, err := f.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return err
-	}
-	err = f.Truncate(cur)
+	// Write output file (all at once).
+	fmt.Println("writing", opt.Filename)
+	err = ioutil.WriteFile(opt.Filename, buf.Bytes(), 0644)
 	return err
 }
 
@@ -87,7 +80,7 @@ type dirInfo struct {
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
+func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
 			log.Printf("can't stat file %q: %v\n", path, err)
@@ -103,13 +96,10 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 				UncompressedSize: fi.Size(),
 			}
 
-			marker, err := f.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return err
-			}
+			marker := buf.Len()
 
 			// Write CompressedFileInfo.
-			err = writeCompressedFileInfo(f, file, r)
+			err = writeCompressedFileInfo(buf, file, r)
 			switch err {
 			default:
 				return err
@@ -122,13 +112,10 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 					return err
 				}
 
-				_, err = f.Seek(marker, io.SeekStart)
-				if err != nil {
-					return err
-				}
+				buf.Truncate(marker)
 
 				// Write FileInfo.
-				err = writeFileInfo(f, file, r)
+				err = writeFileInfo(buf, file, r)
 				if err != nil {
 					return err
 				}
@@ -150,7 +137,7 @@ func findAndWriteFiles(f *os.File, fs http.FileSystem, toc *toc) error {
 			toc.dirs = append(toc.dirs, dir)
 
 			// Write DirInfo.
-			err = t.ExecuteTemplate(f, "DirInfo", dir)
+			err = t.ExecuteTemplate(buf, "DirInfo", dir)
 			if err != nil {
 				return err
 			}

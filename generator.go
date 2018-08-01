@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"go/format"
 	"io"
 	"io/ioutil"
 	"log"
@@ -48,9 +49,15 @@ func Generate(input http.FileSystem, opt Options) error {
 		return err
 	}
 
+	// try and format the output
+	out := buf.Bytes()
+	if fmtOut, err := format.Source(out); err == nil {
+		out = fmtOut
+	}
+
 	// Write output file (all at once).
 	fmt.Println("writing", opt.Filename)
-	err = ioutil.WriteFile(opt.Filename, buf.Bytes(), 0644)
+	err = ioutil.WriteFile(opt.Filename, out, 0644)
 	return err
 }
 

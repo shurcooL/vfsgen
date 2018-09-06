@@ -60,7 +60,14 @@ func parseTagFlag(tagFlag string) (tag string, err error) {
 // lookupNameAndComment imports package using provided build context, and
 // returns the package name and variable comment.
 func lookupNameAndComment(bctx build.Context, importPath, variableName string) (packageName, variableComment string, err error) {
-	bpkg, err := bctx.Import(importPath, "", 0)
+	if build.IsLocalImport(importPath) {
+		return "", "", fmt.Errorf("refusing to use local import path %q", importPath)
+	}
+	srcDir := ""
+	if abs, err := filepath.Abs("."); err == nil {
+		srcDir = abs
+	}
+	bpkg, err := bctx.Import(importPath, srcDir, 0)
 	if err != nil {
 		return "", "", fmt.Errorf("can't import package %q: %v", importPath, err)
 	}

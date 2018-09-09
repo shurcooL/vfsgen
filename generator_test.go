@@ -46,13 +46,21 @@ func TestGenerate_buildAndGofmt(t *testing.T) {
 	}()
 
 	tests := []struct {
-		filename string
-		fs       http.FileSystem
+		filename  string
+		fs        http.FileSystem
+		wantError func(error) bool // Nil function means want nil error.
 	}{
 		{
 			// Empty.
 			filename: "empty.go",
 			fs:       union.New(nil),
+		},
+		{
+			// Test that vfsgen.Generate returns an error when there is
+			// an error reading from the input filesystem.
+			filename:  "notexist.go",
+			fs:        http.Dir("notexist"),
+			wantError: os.IsNotExist,
 		},
 		{
 			// No compressed files.
@@ -81,12 +89,18 @@ func TestGenerate_buildAndGofmt(t *testing.T) {
 	for _, test := range tests {
 		filename := filepath.Join(tempDir, test.filename)
 
-		err = vfsgen.Generate(test.fs, vfsgen.Options{
+		err := vfsgen.Generate(test.fs, vfsgen.Options{
 			Filename:    filename,
 			PackageName: "test",
 		})
-		if err != nil {
-			t.Fatalf("vfsgen.Generate() failed: %v", err)
+		switch {
+		case test.wantError == nil && err != nil:
+			t.Fatalf("%s: vfsgen.Generate returned non-nil error: %v", test.filename, err)
+		case test.wantError != nil && !test.wantError(err):
+			t.Fatalf("%s: vfsgen.Generate returned wrong error: %v", test.filename, err)
+		}
+		if test.wantError != nil {
+			continue
 		}
 
 		if out, err := exec.Command("go", "build", filename).CombinedOutput(); err != nil {

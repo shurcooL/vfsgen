@@ -98,12 +98,17 @@ func TestGenerate_buildAndGofmt(t *testing.T) {
 	}
 }
 
-// TestInvalidSourcePath ensures an error is returned in case a non-existent or non-readable input source
-// is used.
-func TestInvalidSourcePath(t *testing.T) {
-	var fs http.FileSystem = http.Dir("non-readable-source-path")
-
-	if err := vfsgen.Generate(fs, vfsgen.Options{}); err == nil {
-		t.Error("expected an error; got nil")
+// TestGenerateErrorOnInputError tests that vfsgen.Generate returns an error
+// when there is an error reading from the input filesystem.
+func TestGenerateErrorOnInputError(t *testing.T) {
+	badFS := http.Dir("notexist")
+	err := vfsgen.Generate(badFS, vfsgen.Options{
+		Filename: filepath.Join(os.TempDir(), "test_vfsdata.go"),
+	})
+	if err == nil {
+		t.Fatal("got error: nil, want: non-nil")
+	}
+	if got, want := os.IsNotExist(err), true; got != want {
+		t.Errorf("got os.IsNotExist(err): %v, want: %v", got, want)
 	}
 }

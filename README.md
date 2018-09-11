@@ -29,9 +29,9 @@ Usage
 This code will generate an assets_vfsdata.go file with `var assets http.FileSystem = ...` that statically implements the contents of "assets" directory.
 
 ```Go
-var fs http.FileSystem = http.Dir("assets")
+var assets http.FileSystem = http.Dir("assets")
 
-err := vfsgen.Generate(fs, vfsgen.Options{})
+err := vfsgen.Generate(assets, vfsgen.Options{})
 if err != nil {
 	log.Fatalln(err)
 }

@@ -19,6 +19,7 @@ func main() {
 		"folderA/file2.txt":              "Stuff in /folderA/file2.txt.",
 		"folderB/folderC/file3.txt":      "Stuff in /folderB/folderC/file3.txt.",
 		// TODO: Empty folder somehow?
+		// TODO: File with nonzero mod time somehow?
 		//"folder-empty/":                  "",
 	}))
 

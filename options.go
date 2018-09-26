@@ -3,6 +3,7 @@ package vfsgen
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // Options for vfsgen code generation.
@@ -26,6 +27,12 @@ type Options struct {
 	// VariableComment is the comment of the http.FileSystem variable in the generated code.
 	// If left empty, it defaults to "{{.VariableName}} statically implements the virtual filesystem provided to vfsgen.".
 	VariableComment string
+
+	// If non-zero, the files in the generated virtual filesystem will have this modification time,
+	// instead of the modification time of the original files on disk. This is useful if you are
+	// versioning the generated file and want to ignore changes to the modification time of the
+	// original files.
+	ModTime time.Time
 }
 
 // fillMissing sets default values for mandatory options that are left empty.

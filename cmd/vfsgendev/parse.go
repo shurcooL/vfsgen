@@ -9,6 +9,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -65,11 +66,11 @@ func parseTagFlag(tagFlag string) (tag string, err error) {
 // lookupNameAndComment imports package using provided build context, and
 // returns the package name and variable comment.
 func lookupNameAndComment(bctx build.Context, importPath, variableName string) (packageName, variableComment string, err error) {
-	srcDir := ""
-	if abs, err := filepath.Abs("."); err == nil {
-		srcDir = abs
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", "", err
 	}
-	bpkg, err := bctx.Import(importPath, srcDir, 0)
+	bpkg, err := bctx.Import(importPath, wd, 0)
 	if err != nil {
 		return "", "", fmt.Errorf("can't import package %q: %v", importPath, err)
 	}

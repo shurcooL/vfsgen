@@ -9,12 +9,14 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
 
 // parseSourceFlag parses the "-source" flag value. It must have "import/path".VariableName format.
+// It returns an error if the parsed import path is relative.
 func parseSourceFlag(sourceFlag string) (importPath, variableName string, err error) {
 	// Parse sourceFlag as a Go expression, albeit a strange one:
 	//
@@ -31,6 +33,11 @@ func parseSourceFlag(sourceFlag string) (importPath, variableName string, err er
 	importPath, err = stringValue(se.X)
 	if err != nil {
 		return "", "", fmt.Errorf("invalid format, expression %v is not a properly quoted Go string: %v", stringifyAST(se.X), err)
+	}
+	if build.IsLocalImport(importPath) {
+		// Generated code is executed in a temporary directory,
+		// and can't use relative import paths. So disallow them.
+		return "", "", fmt.Errorf("relative import paths are not supported")
 	}
 	variableName = se.Sel.Name
 	return importPath, variableName, nil
@@ -60,7 +67,11 @@ func parseTagFlag(tagFlag string) (tag string, err error) {
 // lookupNameAndComment imports package using provided build context, and
 // returns the package name and variable comment.
 func lookupNameAndComment(bctx build.Context, importPath, variableName string) (packageName, variableComment string, err error) {
-	bpkg, err := bctx.Import(importPath, "", 0)
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", "", err
+	}
+	bpkg, err := bctx.Import(importPath, wd, 0)
 	if err != nil {
 		return "", "", fmt.Errorf("can't import package %q: %v", importPath, err)
 	}

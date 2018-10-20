@@ -16,6 +16,7 @@ import (
 )
 
 // parseSourceFlag parses the "-source" flag value. It must have "import/path".VariableName format.
+// It returns an error if the parsed import path is relative.
 func parseSourceFlag(sourceFlag string) (importPath, variableName string, err error) {
 	// Parse sourceFlag as a Go expression, albeit a strange one:
 	//

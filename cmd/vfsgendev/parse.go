@@ -32,6 +32,11 @@ func parseSourceFlag(sourceFlag string) (importPath, variableName string, err er
 	if err != nil {
 		return "", "", fmt.Errorf("invalid format, expression %v is not a properly quoted Go string: %v", stringifyAST(se.X), err)
 	}
+	if build.IsLocalImport(importPath) {
+		// Generated code is executed in a temporary directory,
+		// and can't use relative import paths. So disallow them.
+		return "", "", fmt.Errorf("relative import paths are not supported")
+	}
 	variableName = se.Sel.Name
 	return importPath, variableName, nil
 }
@@ -60,9 +65,6 @@ func parseTagFlag(tagFlag string) (tag string, err error) {
 // lookupNameAndComment imports package using provided build context, and
 // returns the package name and variable comment.
 func lookupNameAndComment(bctx build.Context, importPath, variableName string) (packageName, variableComment string, err error) {
-	if build.IsLocalImport(importPath) {
-		return "", "", fmt.Errorf("refusing to use local import path %q", importPath)
-	}
 	srcDir := ""
 	if abs, err := filepath.Abs("."); err == nil {
 		srcDir = abs

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	pathpkg "path"
+	"regexp"
 	"sort"
 	"strconv"
 	"text/template"
@@ -32,7 +33,7 @@ func Generate(input http.FileSystem, opt Options) error {
 	}
 
 	var toc toc
-	err = findAndWriteFiles(buf, input, &toc)
+	err = findAndWriteFiles(buf, input, &toc, opt)
 	if err != nil {
 		return err
 	}
@@ -76,10 +77,32 @@ type dirInfo struct {
 	Entries []string
 }
 
+var includeRE *regexp.Regexp
+var excludeRE *regexp.Regexp
+
+func include(path string, opt Options) bool {
+	// if a file matches both the include and exclude regexs, include the file
+	if opt.Include != "" {
+		if includeRE.MatchString(path) {
+			return true
+		}
+		return false
+	}
+	if opt.Exclude != "" {
+		if excludeRE.MatchString(path) {
+			return false
+		}
+	}
+	return true
+}
+
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
+func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc, opt Options) error {
+	includeRE = regexp.MustCompile(opt.Include)
+	excludeRE = regexp.MustCompile(opt.Exclude)
+
 	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
 			// Consider all errors reading the input filesystem as fatal.
@@ -88,6 +111,9 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 
 		switch fi.IsDir() {
 		case false:
+			if !include(path, opt) {
+				return nil
+			}
 			file := &fileInfo{
 				Path:             path,
 				Name:             pathpkg.Base(path),
@@ -121,7 +147,7 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 				toc.HasFile = true
 			}
 		case true:
-			entries, err := readDirPaths(fs, path)
+			entries, err := readDirPaths(fs, path, opt)
 			if err != nil {
 				return err
 			}
@@ -151,14 +177,17 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 
 // readDirPaths reads the directory named by dirname and returns
 // a sorted list of directory paths.
-func readDirPaths(fs http.FileSystem, dirname string) ([]string, error) {
+func readDirPaths(fs http.FileSystem, dirname string, opt Options) ([]string, error) {
 	fis, err := vfsutil.ReadDir(fs, dirname)
 	if err != nil {
 		return nil, err
 	}
-	paths := make([]string, len(fis))
+	var paths []string
 	for i := range fis {
-		paths[i] = pathpkg.Join(dirname, fis[i].Name())
+		path := pathpkg.Join(dirname, fis[i].Name())
+		if include(path, opt) {
+			paths = append(paths, path)
+		}
 	}
 	sort.Strings(paths)
 	return paths, nil

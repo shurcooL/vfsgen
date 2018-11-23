@@ -26,6 +26,14 @@ type Options struct {
 	// VariableComment is the comment of the http.FileSystem variable in the generated code.
 	// If left empty, it defaults to "{{.VariableName}} statically implements the virtual filesystem provided to vfsgen.".
 	VariableComment string
+
+	// IncludeRegex contains a regular expression of files to include, i.e. "\.[cC][sS][sS]$" to include only .css files
+	// If left empty, it defaults to "" (include all files)
+	Include string
+
+	// Exclude contains a regular expression of files to exclude, i.e. "\.[gG][oO]$" to exclude all .go files
+	// If left empty, it defaults to "" (exclude no files)
+	Exclude string
 }
 
 // fillMissing sets default values for mandatory options that are left empty.

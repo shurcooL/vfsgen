@@ -49,11 +49,18 @@ func TestGenerate_buildAndGofmt(t *testing.T) {
 		filename  string
 		fs        http.FileSystem
 		wantError func(error) bool // Nil function means want nil error.
+		force     bool
 	}{
 		{
 			// Empty.
 			filename: "empty.go",
 			fs:       union.New(nil),
+		},
+		{
+			// Force all types.
+			filename: "forceall.go",
+			fs:       union.New(nil),
+			force:    true,
 		},
 		{
 			// Test that vfsgen.Generate returns an error when there is
@@ -90,8 +97,9 @@ func TestGenerate_buildAndGofmt(t *testing.T) {
 		filename := filepath.Join(tempDir, test.filename)
 
 		err := vfsgen.Generate(test.fs, vfsgen.Options{
-			Filename:    filename,
-			PackageName: "test",
+			Filename:      filename,
+			PackageName:   "test",
+			ForceAllTypes: test.force,
 		})
 		switch {
 		case test.wantError == nil && err != nil:

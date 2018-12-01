@@ -32,6 +32,7 @@ func Generate(input http.FileSystem, opt Options) error {
 	}
 
 	var toc toc
+	toc.AllTypes = opt.ForceAllTypes
 	err = findAndWriteFiles(buf, input, &toc)
 	if err != nil {
 		return err
@@ -56,6 +57,7 @@ func Generate(input http.FileSystem, opt Options) error {
 type toc struct {
 	dirs []*dirInfo
 
+	AllTypes          bool // Force include all types
 	HasCompressedFile bool // There's at least one compressedFile.
 	HasFile           bool // There's at least one uncompressed file.
 }
@@ -291,7 +293,7 @@ func (fs vfsgen۰FS) Open(path string) (http.File, error) {
 		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrNotExist}
 	}
 
-	switch f := f.(type) {{"{"}}{{if .HasCompressedFile}}
+	switch f := f.(type) {{"{"}}{{if or .AllTypes .HasCompressedFile}}
 	case *vfsgen۰CompressedFileInfo:
 		gr, err := gzip.NewReader(bytes.NewReader(f.compressedContent))
 		if err != nil {
@@ -301,7 +303,7 @@ func (fs vfsgen۰FS) Open(path string) (http.File, error) {
 		return &vfsgen۰CompressedFile{
 			vfsgen۰CompressedFileInfo: f,
 			gr:                        gr,
-		}, nil{{end}}{{if .HasFile}}
+		}, nil{{end}}{{if or .AllTypes .HasFile}}
 	case *vfsgen۰FileInfo:
 		return &vfsgen۰File{
 			vfsgen۰FileInfo: f,
@@ -316,7 +318,7 @@ func (fs vfsgen۰FS) Open(path string) (http.File, error) {
 		panic(fmt.Sprintf("unexpected type %T", f))
 	}
 }
-{{if .HasCompressedFile}}
+{{if or .AllTypes .HasCompressedFile}}
 // vfsgen۰CompressedFileInfo is a static definition of a gzip compressed file.
 type vfsgen۰CompressedFileInfo struct {
 	name              string
@@ -391,7 +393,7 @@ func (f *vfsgen۰CompressedFile) Close() error {
 // We already imported "compress/gzip" and "io/ioutil", but ended up not using them. Avoid unused import error.
 var _ = gzip.Reader{}
 var _ = ioutil.Discard
-{{end}}{{if .HasFile}}
+{{end}}{{if or .AllTypes .HasFile}}
 // vfsgen۰FileInfo is a static definition of an uncompressed file (because it's not worth gzip compressing).
 type vfsgen۰FileInfo struct {
 	name    string
@@ -422,7 +424,7 @@ type vfsgen۰File struct {
 func (f *vfsgen۰File) Close() error {
 	return nil
 }
-{{else if not .HasCompressedFile}}
+{{else if and (not .AllTypes) (not .HasCompressedFile)}}
 // We already imported "bytes", but ended up not using it. Avoid unused import error.
 var _ = bytes.Reader{}
 {{end}}

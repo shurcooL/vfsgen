@@ -198,4 +198,4 @@ This package was originally based on the excellent work by [@jteeuwen](https://g
 License
 -------
 
--	[MIT License](https://opensource.org/licenses/mit-license.php)
+-	[MIT License](LICENSE)

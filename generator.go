@@ -12,6 +12,7 @@ import (
 	pathpkg "path"
 	"sort"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -21,32 +22,35 @@ import (
 // Generate Go code that statically implements input filesystem,
 // write the output to a file specified in opt.
 func Generate(input http.FileSystem, opt Options) error {
+	if opt.ErrorOnPkgPkg {
+		rootDir, err := input.Open("/")
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(fmt.Sprintf("%T", rootDir), "vfsgen۰Dir") {
+			return fmt.Errorf("trying to generate assest from a vfs packed asset")
+		}
+	}
 	opt.fillMissing()
-
 	// Use an in-memory buffer to generate the entire output.
 	buf := new(bytes.Buffer)
-
 	err := t.ExecuteTemplate(buf, "Header", opt)
 	if err != nil {
 		return err
 	}
-
 	var toc toc
 	err = findAndWriteFiles(buf, input, &toc)
 	if err != nil {
 		return err
 	}
-
 	err = t.ExecuteTemplate(buf, "DirEntries", toc.dirs)
 	if err != nil {
 		return err
 	}
-
 	err = t.ExecuteTemplate(buf, "Trailer", toc)
 	if err != nil {
 		return err
 	}
-
 	// Write output file (all at once).
 	fmt.Println("writing", opt.Filename)
 	err = ioutil.WriteFile(opt.Filename, buf.Bytes(), 0644)

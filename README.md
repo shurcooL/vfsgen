@@ -112,6 +112,7 @@ func main() {
 		PackageName:  "data",
 		BuildTags:    "!dev",
 		VariableName: "Assets",
+		ErrorOnPkgPkg: true,
 	})
 	if err != nil {
 		log.Fatalln(err)

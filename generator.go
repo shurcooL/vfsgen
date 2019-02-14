@@ -28,7 +28,7 @@ func Generate(input http.FileSystem, opt Options) error {
 			return err
 		}
 		if strings.HasSuffix(fmt.Sprintf("%T", rootDir), "vfsgen۰Dir") {
-			return fmt.Errorf("trying to generate assest from a vfs packed asset")
+			return fmt.Errorf("trying to generate assest from a vfs packed asset. Make sure the current build tag was used (eg go build -tags dev)")
 		}
 	}
 	opt.fillMissing()

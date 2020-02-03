@@ -32,7 +32,7 @@ func Generate(input http.FileSystem, opt Options) error {
 	}
 
 	var toc toc
-	err = findAndWriteFiles(buf, input, &toc)
+	err = findAndWriteFiles(buf, input, &toc, opt)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ type dirInfo struct {
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
 // They are added to the given map as keys. Values will be safe function names
 // for each file, which will be used when generating the output code.
-func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
+func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc, opt Options) error {
 	walkFn := func(path string, fi os.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
 			// Consider all errors reading the input filesystem as fatal.
@@ -88,10 +88,15 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 
 		switch fi.IsDir() {
 		case false:
+			modTime := fi.ModTime().UTC()
+			if opt.FileModTime != nil {
+				modTime = *opt.FileModTime
+			}
+
 			file := &fileInfo{
 				Path:             path,
 				Name:             pathpkg.Base(path),
-				ModTime:          fi.ModTime().UTC(),
+				ModTime:          modTime,
 				UncompressedSize: fi.Size(),
 			}
 
@@ -126,10 +131,15 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 				return err
 			}
 
+			modTime := fi.ModTime().UTC()
+			if opt.FileModTime != nil {
+				modTime = *opt.FileModTime
+			}
+
 			dir := &dirInfo{
 				Path:    path,
 				Name:    pathpkg.Base(path),
-				ModTime: fi.ModTime().UTC(),
+				ModTime: modTime,
 				Entries: entries,
 			}
 

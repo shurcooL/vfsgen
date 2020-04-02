@@ -21,6 +21,18 @@ import (
 // Generate Go code that statically implements input filesystem,
 // write the output to a file specified in opt.
 func Generate(input http.FileSystem, opt Options) error {
+	// Write output file (all at once).
+	fmt.Println("writing", opt.Filename)
+	data, err := GenerateBytes(input, opt)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(opt.Filename, data, 0644)
+}
+
+// Generate Go code that statically implements input filesystem,
+// return output bytes.
+func GenerateBytes(input http.FileSystem, opt Options) ([]byte, error) {
 	opt.fillMissing()
 
 	// Use an in-memory buffer to generate the entire output.
@@ -28,29 +40,26 @@ func Generate(input http.FileSystem, opt Options) error {
 
 	err := t.ExecuteTemplate(buf, "Header", opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var toc toc
 	err = findAndWriteFiles(buf, input, &toc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = t.ExecuteTemplate(buf, "DirEntries", toc.dirs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = t.ExecuteTemplate(buf, "Trailer", toc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Write output file (all at once).
-	fmt.Println("writing", opt.Filename)
-	err = ioutil.WriteFile(opt.Filename, buf.Bytes(), 0644)
-	return err
+	return buf.Bytes(), nil
 }
 
 type toc struct {

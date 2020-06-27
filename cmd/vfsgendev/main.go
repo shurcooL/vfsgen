@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	sourceFlag = flag.String("source", "", "Specifies the http.FileSystem variable to use as source.")
-	tagFlag    = flag.String("tag", "dev", "Specifies a single build tag to use for source. The output will include a negated version.")
-	fallback   = flag.String("fallback", "", "Specifies a fallback file that is served if no other is found.")
-	nFlag      = flag.Bool("n", false, "Print the generated source but do not run it.")
+	sourceFlag   = flag.String("source", "", "Specifies the http.FileSystem variable to use as source.")
+	tagFlag      = flag.String("tag", "dev", "Specifies a single build tag to use for source. The output will include a negated version.")
+	fallbackFlag = flag.String("fallback", "", "Specifies a fallback file that is served if no other is found.")
+	nFlag        = flag.Bool("n", false, "Print the generated source but do not run it.")
 )
 
 func usage() {
@@ -48,7 +48,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	err = run(importPath, variableName, tag, *fallback)
+	err = run(importPath, variableName, tag, *fallbackFlag)
 	if err != nil {
 		log.Fatalln(err)
 	}

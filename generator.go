@@ -290,12 +290,12 @@ func (fs vfsgen۰FS) Open(path string) (http.File, error) {
 	path = pathpkg.Clean("/" + path)
 	f, ok := fs[path]
 	if !ok {
-		{{- if .Fallback -}}
+		{{ if .Fallback -}}
 		fallbackPath := pathpkg.Clean("/" + "{{.Fallback}}")
 		f = fs[fallbackPath]
 		{{- else -}}
 		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrNotExist}
-		{{- end -}}
+		{{- end }}
 	}
 
 	switch f := f.(type) {{"{"}}{{if .HasCompressedFile}}

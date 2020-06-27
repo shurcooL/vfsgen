@@ -17,6 +17,7 @@ import (
 var (
 	sourceFlag = flag.String("source", "", "Specifies the http.FileSystem variable to use as source.")
 	tagFlag    = flag.String("tag", "dev", "Specifies a single build tag to use for source. The output will include a negated version.")
+	fallback   = flag.String("fallback", "", "Specifies a fallback file that is served if no other is found.")
 	nFlag      = flag.Bool("n", false, "Print the generated source but do not run it.")
 )
 
@@ -47,13 +48,13 @@ func main() {
 		os.Exit(2)
 	}
 
-	err = run(importPath, variableName, tag)
+	err = run(importPath, variableName, tag, *fallback)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func run(importPath, variableName, tag string) error {
+func run(importPath, variableName, tag, fallback string) error {
 	bctx := build.Default
 	bctx.BuildTags = []string{tag}
 	packageName, variableComment, err := lookupNameAndComment(bctx, importPath, variableName)
@@ -68,6 +69,7 @@ func run(importPath, variableName, tag string) error {
 		BuildTags:       "!" + tag,
 		VariableName:    variableName,
 		VariableComment: variableComment,
+		Fallback:        fallback,
 	})
 	if err != nil {
 		return err

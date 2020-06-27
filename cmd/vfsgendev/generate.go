@@ -11,6 +11,7 @@ type data struct {
 	BuildTags       string
 	VariableName    string
 	VariableComment string
+	Fallback        string
 }
 
 var generateTemplate = template.Must(template.New("").Funcs(template.FuncMap{
@@ -31,6 +32,7 @@ func main() {
 		BuildTags:       {{.BuildTags | quote}},
 		VariableName:    {{.VariableName | quote}},
 		VariableComment: {{.VariableComment | quote}},
+		Fallback:        {{.Fallback | quote}},
 	})
 	if err != nil {
 		log.Fatalln(err)

@@ -292,7 +292,10 @@ func (fs vfsgen۰FS) Open(path string) (http.File, error) {
 	if !ok {
 		{{ if .Fallback -}}
 		fallbackPath := pathpkg.Clean("/" + "{{.Fallback}}")
-		f = fs[fallbackPath]
+		f, ok = fs[fallbackPath]
+		if !ok {
+			return nil, &os.PathError{Op: "open fallback file", Path: fallbackPath, Err: os.ErrNotExist}
+		}
 		{{- else -}}
 		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrNotExist}
 		{{- end }}

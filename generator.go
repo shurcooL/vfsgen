@@ -170,7 +170,10 @@ func writeCompressedFileInfo(w io.Writer, file *fileInfo, r io.Reader) error {
 		return err
 	}
 	sw := &stringWriter{Writer: w}
-	gw := gzip.NewWriter(sw)
+	gw, err := gzip.NewWriterLevel(sw, gzip.BestCompression)
+	if err != nil {
+		return err
+	}
 	_, err = io.Copy(gw, r)
 	if err != nil {
 		return err

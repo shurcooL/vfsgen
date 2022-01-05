@@ -68,14 +68,16 @@ type fileInfo struct {
 	Name             string
 	ModTime          time.Time
 	UncompressedSize int64
+	UseGlobalModTime bool
 }
 
 // dirInfo is a definition of a directory.
 type dirInfo struct {
-	Path    string
-	Name    string
-	ModTime time.Time
-	Entries []string
+	Path             string
+	Name             string
+	ModTime          time.Time
+	Entries          []string
+	UseGlobalModTime bool
 }
 
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
@@ -95,6 +97,7 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 				Name:             pathpkg.Base(path),
 				ModTime:          fi.ModTime().UTC(),
 				UncompressedSize: fi.Size(),
+				UseGlobalModTime: toc.UseGlobalModTime,
 			}
 
 			marker := buf.Len()
@@ -129,10 +132,11 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 			}
 
 			dir := &dirInfo{
-				Path:    path,
-				Name:    pathpkg.Base(path),
-				ModTime: fi.ModTime().UTC(),
-				Entries: entries,
+				Path:             path,
+				Name:             pathpkg.Base(path),
+				ModTime:          fi.ModTime().UTC(),
+				Entries:          entries,
+				UseGlobalModTime: toc.UseGlobalModTime,
 			}
 
 			toc.dirs = append(toc.dirs, dir)

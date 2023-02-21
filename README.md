@@ -81,7 +81,7 @@ By using build tags, you can create a development mode where assets are loaded d
 For example, suppose your source filesystem is defined in a package with import path "example.com/project/data" as:
 
 ```Go
-// +build dev
+//go:build dev
 
 package data
 
@@ -96,7 +96,7 @@ When built with the "dev" build tag, accessing `data.Assets` will read from disk
 A generate helper file assets_generate.go can be invoked via "//go:generate go run -tags=dev assets_generate.go" directive:
 
 ```Go
-// +build ignore
+//go:build ignore
 
 package main
 

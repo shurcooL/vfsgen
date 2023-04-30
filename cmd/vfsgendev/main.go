@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"go/build"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -85,7 +84,7 @@ func run(importPath, variableName, tag string) error {
 // goRun runs Go code src with build tags.
 func goRun(src string, tags string) error {
 	// Create a temp folder.
-	tempDir, err := ioutil.TempDir("", "vfsgendev_")
+	tempDir, err := os.MkdirTemp("", "vfsgendev_")
 	if err != nil {
 		return err
 	}
@@ -98,7 +97,7 @@ func goRun(src string, tags string) error {
 
 	// Write the source code file.
 	tempFile := filepath.Join(tempDir, "generate.go")
-	err = ioutil.WriteFile(tempFile, []byte(src), 0600)
+	err = os.WriteFile(tempFile, []byte(src), 0600)
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,6 @@ package test_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -78,7 +77,7 @@ func Example_compressed() {
 		}
 		defer f.Close()
 
-		b, err := ioutil.ReadAll(f)
+		b, err := io.ReadAll(f)
 		fmt.Printf("%q %v\n", string(b), err)
 
 		if gzipFile, ok := f.(httpgzip.GzipByter); ok {
@@ -332,7 +331,7 @@ func Example_pathCleaned() {
 	}
 	fmt.Println(fi.Name())
 
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	fmt.Printf("%q %v\n", string(b), err)
 
 	// Output:

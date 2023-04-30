@@ -1,7 +1,6 @@
 package vfsgen_test
 
 import (
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -35,15 +34,7 @@ func Example() {
 // Verify that all possible combinations of {non-compressed,compressed} files build
 // successfully, and have no gofmt issues.
 func TestGenerate_buildAndGofmt(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "vfsgen_test_")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := os.RemoveAll(tempDir); err != nil {
-			t.Fatal(err)
-		}
-	}()
+	tempDir := t.TempDir()
 
 	tests := []struct {
 		filename  string
